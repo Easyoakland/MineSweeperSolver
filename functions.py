@@ -151,17 +151,17 @@ class Game:
 
     possibleCells = property(getPossibleCells, setPossibleCells)
 
-    # find new numbered cell IDs algorithm
-    # def updateCellArray(self, cell, cellArray):
-    #     if cellArray[convertCordToOffset(Cell.cord)] != Cell.ID:
-    #         cellArray[convertCordToOffset(Cell.cord)]
-    #         if cell.ID == "cell.png":  # no need to check neighbors of a numbered cell because it is the frontier already
-    #             return
-    #         for neighbor in cell.neighbors():
-    #             cellNew = Cell(neighbor, Game)
-    #             cellNew.updateCellArray()
-    #     else:
-    #         return
+    # find new cell IDs algorithm
+    def updateCellArray(self, cell, cellArray):
+        if cellArray[self.convertCordToOffset(cell.cord)] != cell.ID: # if cell has updated
+            cellArray[self.convertCordToOffset(cell.cord)] = cell.ID # update its ID
+            for neighbor in cell.neighbors(1, self): # check neighbors of updated cell to see if they also updated
+                cellNew = Cell(neighbor, self)
+                if cell.ID != "complete.png":  # no need to check neighbors of a non complete cell because new cells must be touching completed cells
+                    continue # so skip this neighbor and go to next
+                self.updateCellArray(cellNew, cellArray)
+        else:
+            return
 
 
 # Handles an individual cell on the board
@@ -191,7 +191,7 @@ class Cell:
                 neighbors.remove(cord)
                 i -= 1  # move back since index of list will have shifted back
             # neighbor has cordinate larger than board
-            elif cord[0] > game._width or cord[1] > game._height:
+            elif cord[0] > game._width-1 or cord[1] > game._height-1:
                 neighbors.remove(cord)
                 i -= 1  # move back since index of list will have shifted back
             i += 1

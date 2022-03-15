@@ -23,6 +23,9 @@ game = Game()  # setup game class instance
 game.possibleCells = ["1.png", "2.png", "3.png",
                       "4.png", "flag.png", "cell.png", "complete.png"]
 
+possibleCellToValueDict = {"1.png": 1, "2.png": 2, "3.png": 3,
+                           "4.png": 4, "flag.png": -1, "cell.png": 9, "complete.png": 0}
+
 # This is too slow to run ever logical cycle:
 # make list of IDs for all cells
 # cellArray = [game.identifyCellAtPos(pos) for i, pos in enumerate(game._grid)]
@@ -30,9 +33,19 @@ game.possibleCells = ["1.png", "2.png", "3.png",
 # pre-fill cellArray
 cellArray = ["cell.png" for i in range(game._width*game._height)]
 
+game.click((1, 1))
 
-# print(cellArray)
+game.updateCellArray((Cell((1, 1), game)), cellArray)
 
 
-cell1 = Cell((0, 0), game)
+# clear file contents
+with open('temp.csv', 'w') as file:
+    file.write("")
 
+# testing updateCellArray
+# write updateCellArray to file after formatting nice
+with open('temp.csv', 'a') as file:
+    for i, cell in enumerate(cellArray):
+        file.write(str(possibleCellToValueDict[cell])+", ")
+        if (i+1) % (game._width) == 0:
+            file.write("\n")
