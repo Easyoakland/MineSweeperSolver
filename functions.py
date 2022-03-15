@@ -1,4 +1,5 @@
 import pyautogui
+from time import sleep
 
 # click top left cell
 # pyautogui.click(grid[0])
@@ -81,6 +82,14 @@ class Game:
                 return possibleCell
         return None
 
+    # identify again but this time using a screenshot passed in instead
+    def identifyCell2(self, cord, boardIm):
+        pos = self.convertCordToPos(cord)
+        for possibleCell in self.possibleCells:
+            if pyautogui.locate(possibleCell, boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight)) != None:
+                return possibleCell
+        return None
+
     # same as identify cell but takes pixel location
     def identifyCellAtPos(self, pos):
         for possibleCell in self.possibleCells:
@@ -151,35 +160,84 @@ class Game:
 
     possibleCells = property(getPossibleCells, setPossibleCells)
 
+    # screenshot board
+    def boardScreenshot(self, boardIm=None):
+        if boardIm == None:  # if no image of the board was given, get one
+            boardIm = pyautogui.screenshot(region=(
+                self._origin[0], self._origin[1], self._end[0]+self._cellwidth-self._origin[0], self._end[1]+self._cellheight-self._origin[1]))
+        return boardIm
+
     # find new cell IDs algorithm
-    def updateCellArray(self, cell):
-        if self.cellArray[self.convertCordToOffset(cell.cord)] != cell.ID: # if cell has updated
-            self.cellArray[self.convertCordToOffset(cell.cord)] = cell.ID # update its ID
-            for neighbor in cell.neighbors(1, self): # check neighbors of updated cell to see if they also updated
-                cellNew = Cell(neighbor, self)
+    def updateCellArray(self, cord, boardIm=None):
+        boardIm = self.boardScreenshot(boardIm=boardIm)
+        cell = Cell(cord, self, boardIm)
+        # if cell has updated
+        if self.cellArray[self.convertCordToOffset(cell.cord)] != cell.ID:
+            self.cellArray[self.convertCordToOffset(
+                cell.cord)] = cell.ID  # update its ID
+            # check neighbors of updated cell to see if they also updated
+            for neighbor in cell.neighbors(1, self):
                 if cell.ID != "complete.png":  # no need to check neighbors of a non complete cell because new cells must be touching completed cells
-                    continue # so skip this neighbor and go to next
-                self.updateCellArray(cellNew)
+                    continue  # so skip this neighbor and go to next
+                self.updateCellArray(neighbor)
         else:
             return
 
-    # Logical Rule 1: If the number of unrevealed cells is equal to the number on the tile then they are all bombs
-    # def rule1(self, cell):
-    #     if self.cellArray[self.convertCordToOffset(cell.cord)] != cell.ID: # if cell has updated
-    #         self.cellArray[self.convertCordToOffset(cell.cord)] = cell.ID # update its ID
-    #         for neighbor in cell.neighbors(1, self): # check neighbors of updated cell to see if they also updated
-    #             cellNew = Cell(neighbor, self)
-    #             if cell.ID != "complete.png":  # no need to check neighbors of a non complete cell because new cells must be touching completed cells
-    #                 continue # so skip this neighbor and go to next
-    #             self.updateCellArray(cellNew, self.cellArray)
-    #     else:
-    #         return
+    # Reveal tile at cord then update cell Id's starting at clicked location
+    def reveal(self, cord):
+        self.click(cord)
+        sleep(0.1)
+        self.updateCellArray(cord)
+
+    # Flag tile at cord then update cell Id at location to flag
+    def flag(self, cord):
+        self.clickR(cord)
+        self.cellArray[self.convertCordToOffset(cord)] = "flag.png"
+
+    # Logical Rule 1: If the number of unrevealed cells is equal to the number of bombs left around the cell then the unrevealed cells are bombs
+    def rule1(self, cell):
+        unrevealedCnt = 0
+        flagCnt = 0
+        # check neighbors of cell to see how many are unrevealed and how many are flags
+        for neighbor in cell.neighbors(1, self):
+            if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
+                unrevealedCnt += 1
+            elif self.cellArray[self.convertCordToOffset(neighbor)] == "flag.png":
+                flagCnt += 1
+        # if that number is the same as the number on this cell then all unrevealed cells are all bombs
+        # if flag+unrevealed = total bombs around cell
+        if flagCnt+unrevealedCnt == self.possibleCellToValueDict[cell.ID]:
+            for neighbor in cell.neighbors(1, self):
+                # if neighboring cell is unrevealed
+                if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
+                    self.flag(neighbor)
+            return cell
+        else: #if that number is different and this didn't do anything
+            return None
+
+
+    # Logical Rule 2: If the number of flags around the cell equals the number of the cell all unrevealed cells are safe
+    def rule2(self, cell):
+        unrevealedCnt = 0
+        flagCnt = 0
+        # check neighbors of cell to see how many are flags
+        for neighbor in cell.neighbors(1, self):
+            if self.cellArray[self.convertCordToOffset(neighbor)] == "flag.png":
+                flagCnt += 1
+        # if the number of flags the same as the number on this cell then all unrevealed cells are all safe
+        # check for flagCnt is equal to cell number
+        if flagCnt == self.possibleCellToValueDict[cell.ID]:
+            for neighbor in cell.neighbors(1, self):
+                # if neighboring cell is unrevealed
+                if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
+                    self.reveal(neighbor)
 
 
 # Handles an individual cell on the board
 class Cell:
-    def __init__(self, cord, Game):
-        self._ID = Game.identifyCell(cord)
+    def __init__(self, cord, Game, boardIm=None):
+        boardIm = Game.boardScreenshot(boardIm=boardIm)
+        self._ID = Game.identifyCell2(cord, boardIm)
         self.cord = cord
         # self._width, self._height = Game.getWidth(), Game.getHeight()
 
@@ -212,7 +270,7 @@ class Cell:
 
     # set ID
     def setID(self, game):
-        self._ID = Game.identifyCell(self.cord)
+        self._ID = Game.identifyCell2(self.cord, boardIm)
 
     # get ID
     def getID(self):
