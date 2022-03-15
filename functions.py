@@ -10,6 +10,22 @@ import pyautogui
 # pyautogui.click(grid[(2*width)-1])
 
 
+# acts like enumerate but optionally takes value for start index and/or step of index
+# to understand generators: https://www.youtube.com/watch?v=u3T7hmLthUU
+def enumerateVariableIndex(toIterate, start=0, step=1):
+    for item in toIterate:
+        yield(start, item)
+        start += step
+
+
+def enumerateVariableSpeed(toIterate, start=0, step=1):
+    for i in range(len(toIterate)):
+        if start >= len(toIterate):
+            return
+        yield(i, toIterate[start])
+        start += step
+
+
 # Handles info about board itself
 class Game:
     def __init__(self):
@@ -22,6 +38,7 @@ class Game:
             self._width, self._height, self._cellwidth, self._cellheight, self._origin, self._end, self._grid = temp
 
     def determineLayout(self):
+        # First makes sure there was a recognized cell, then
         # set cell width and cell height using first identified cell's width and height
         # [2:4] is because the function outputs x,y,width,height and we only want width and height
         temp = pyautogui.locateOnScreen("cell.png")
@@ -40,10 +57,19 @@ class Game:
         # Find bottom right and set to end
         end = grid[-1][0:2]
 
-        # set the width and height of the game in cells based upon the width of each cell and the size of the board
-        width = ((end[0]+cellwidth)-origin[0])/cellwidth
-        height = ((end[1]+cellheight)-origin[1])/cellheight
-
+        # set the width by counting how many cells into the offset the highest x value is
+        # this only works if since the grid is square because this counts the width of the first row
+        biggest = 0
+        for i, cell in enumerate(grid):
+            if cell[0] > biggest:
+                biggest = cell[0]
+                width = i+1
+        # set the height by counting how many widths into the offset the highest y value is
+        biggest = 0
+        for i, cell in enumerateVariableSpeed(grid, step=width):
+            if cell[1] > biggest:
+                biggest = cell[1]
+                height = i+1
         return int(width), int(height), int(cellwidth), int(cellheight), origin, end, grid
 
     # iterates through all possible images to see if one matches
@@ -54,14 +80,13 @@ class Game:
             if pyautogui.locateOnScreen(possibleCell, region=(pos[0], pos[1], self._cellwidth, self._cellheight)) != None:
                 return possibleCell
         return None
-    
+
     # same as identify cell but takes pixel location
     def identifyCellAtPos(self, pos):
         for possibleCell in self.possibleCells:
             if pyautogui.locateOnScreen(possibleCell, region=(pos[0], pos[1], self._cellwidth, self._cellheight)) != None:
                 return possibleCell
         return None
-
 
     # convert grid cordinate to pixel position
     def convertCordToPos(self, cord):
@@ -71,12 +96,30 @@ class Game:
         yOffset = self._width*cord[1]
         totalOffset = int(xOffset+yOffset)  # array indice must be of type int
         return self._grid[totalOffset][0:2]
-    
+
     # convert pixel position to grid cordinate
     def convertPosToCord(self, pos):
         yCord = (pos[1]-self._origin[1])/self._cellheight
         xCord = (pos[0]-self._origin[0])/self._cellwidth
         return (int(xCord), int(yCord))
+
+    # convert grid cord to offset
+    def convertCordToOffset(self, cord):
+        xOffset = cord[0]
+        yOffset = self._width*cord[1]
+        return int(xOffset+yOffset)
+
+    # convert offset to cord
+    def convertOffsetToCord(self, Offset):
+        cnt = 0
+        while Offset > self._width:
+            Offset = Offset-self._width
+            cnt += 1
+        y = cnt
+        x = Offset
+        # y = int(Offset/self._width)
+        # x = int(Offset-y*self._width)
+        return (x, y)
 
     # clicks at cell cordinate given
     def click(self, cord):
@@ -107,6 +150,18 @@ class Game:
         return self._height
 
     possibleCells = property(getPossibleCells, setPossibleCells)
+
+    # find new numbered cell IDs algorithm
+    # def updateCellArray(self, cell, cellArray):
+    #     if cellArray[convertCordToOffset(Cell.cord)] != Cell.ID:
+    #         cellArray[convertCordToOffset(Cell.cord)]
+    #         if cell.ID == "cell.png":  # no need to check neighbors of a numbered cell because it is the frontier already
+    #             return
+    #         for neighbor in cell.neighbors():
+    #             cellNew = Cell(neighbor, Game)
+    #             cellNew.updateCellArray()
+    #     else:
+    #         return
 
 
 # Handles an individual cell on the board
@@ -150,3 +205,5 @@ class Cell:
     # get ID
     def getID(self):
         return self._ID
+
+    ID = property(getID, setID)

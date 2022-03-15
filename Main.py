@@ -17,17 +17,22 @@ import init
 pyautogui.PAUSE = 0
 pyautogui.FAILSAFE = False
 
-game = Game() # setup game class instance
+game = Game()  # setup game class instance
 
 # Define the possible cells there are
 game.possibleCells = ["1.png", "2.png", "3.png",
                       "4.png", "flag.png", "cell.png", "complete.png"]
 
+# This is too slow to run ever logical cycle:
 # make list of IDs for all cells
-cellArray = [game.identifyCellAtPos(pos) for i, pos in enumerate(game._grid)]
+# cellArray = [game.identifyCellAtPos(pos) for i, pos in enumerate(game._grid)]
 
-print(cellArray)
+# pre-fill cellArray
+cellArray = ["cell.png" for i in range(game._width*game._height)]
+
+
+# print(cellArray)
 
 
 cell1 = Cell((0, 0), game)
-game.clickR((2, 2))
+
