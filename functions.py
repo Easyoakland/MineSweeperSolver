@@ -18,7 +18,7 @@ def enumerateVariableIndex(toIterate, start=0, step=1):
         yield(start, item)
         start += step
 
-
+# acts like enumerate but optionally takes value for start index and/or step
 def enumerateVariableSpeed(toIterate, start=0, step=1):
     for i in range(len(toIterate)):
         if start >= len(toIterate):
