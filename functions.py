@@ -152,16 +152,28 @@ class Game:
     possibleCells = property(getPossibleCells, setPossibleCells)
 
     # find new cell IDs algorithm
-    def updateCellArray(self, cell, cellArray):
-        if cellArray[self.convertCordToOffset(cell.cord)] != cell.ID: # if cell has updated
-            cellArray[self.convertCordToOffset(cell.cord)] = cell.ID # update its ID
+    def updateCellArray(self, cell):
+        if self.cellArray[self.convertCordToOffset(cell.cord)] != cell.ID: # if cell has updated
+            self.cellArray[self.convertCordToOffset(cell.cord)] = cell.ID # update its ID
             for neighbor in cell.neighbors(1, self): # check neighbors of updated cell to see if they also updated
                 cellNew = Cell(neighbor, self)
                 if cell.ID != "complete.png":  # no need to check neighbors of a non complete cell because new cells must be touching completed cells
                     continue # so skip this neighbor and go to next
-                self.updateCellArray(cellNew, cellArray)
+                self.updateCellArray(cellNew)
         else:
             return
+
+    # Logical Rule 1: If the number of unrevealed cells is equal to the number on the tile then they are all bombs
+    # def rule1(self, cell):
+    #     if self.cellArray[self.convertCordToOffset(cell.cord)] != cell.ID: # if cell has updated
+    #         self.cellArray[self.convertCordToOffset(cell.cord)] = cell.ID # update its ID
+    #         for neighbor in cell.neighbors(1, self): # check neighbors of updated cell to see if they also updated
+    #             cellNew = Cell(neighbor, self)
+    #             if cell.ID != "complete.png":  # no need to check neighbors of a non complete cell because new cells must be touching completed cells
+    #                 continue # so skip this neighbor and go to next
+    #             self.updateCellArray(cellNew, self.cellArray)
+    #     else:
+    #         return
 
 
 # Handles an individual cell on the board
