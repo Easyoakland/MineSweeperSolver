@@ -4,8 +4,6 @@ import init
 
 # TODO Change identification to something faster because allmost all computation time is spent on locate function
 
-# TODO don't pass Game to Cell class. Instead pass ID directly
-
 # TODO logic
 # 3. Implement linked cells (1 bomb among group of cells)
     # if two linked cells overlap completely then the un-overlapped part is safe
