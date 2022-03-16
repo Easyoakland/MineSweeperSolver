@@ -44,11 +44,13 @@ while somethingHappened:
             if (game.rule1(Cell(game.convertOffsetToCord(i), game))
                     or game.rule2(Cell(game.convertOffsetToCord(i), game))):
                 somethingHappened = True
-                print("At a: " + ID + " Something happened near: " +
-                      str(game.convertOffsetToCord(i)))
-                continue
-            print("At a: " + ID + " Nothing happened near: " +
-                  str(game.convertOffsetToCord(i)))
+                # FOR TESTING
+                # print("At a: " + ID + " Something happened near: " +
+                #       str(game.convertOffsetToCord(i)))
+                # continue
+            # FOR TESTING
+            # print("At a: " + ID + " Nothing happened near: " +
+            #       str(game.convertOffsetToCord(i)))
     print("Repeating" + str(somethingHappened))
 
 a = pyautogui.locateOnScreen("victory.png")
