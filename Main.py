@@ -21,7 +21,7 @@ game = Game()  # setup game class instance
 game.possibleCells = ["1.png", "2.png", "3.png",
                       "4.png", "5.png", "6.png", "7.png", "8.png", "flag.png", "cell.png", "complete.png"]
 
-game.possibleCellToValueDict = {"1.png": 1, "2.png": 2, "3.png": 3,
+game.possibleCellsDict = {"1.png": 1, "2.png": 2, "3.png": 3,
                                 "4.png": 4, "5.png": 5, "6.png": 6, "7.png": 7, "8.png": 8, "flag.png": -1, "cell.png": 9, "complete.png": 0}
 
 # This is too slow to run every logical cycle:
@@ -53,6 +53,7 @@ while somethingHappened:
             #       str(game.convertOffsetToCord(i)))
     # print("Repeating" + str(somethingHappened))
 
+# guess was required if the loop stopped but there victory isn't displayed
 a = pyautogui.locateOnScreen("victory.png")
 if a == None:
     print("Guess was required")
@@ -65,6 +66,6 @@ with open('FinalGrid.csv', 'w') as file:
 # write updateCellArray to file after formatting nicely
 with open('FinalGrid.csv', 'a') as file:
     for i, cell in enumerate(game.cellArray):
-        file.write(str(game.possibleCellToValueDict[cell])+", ")
+        file.write(str(game.possibleCellsDict[cell])+", ")
         if (i+1) % (game._width) == 0:
             file.write("\n")

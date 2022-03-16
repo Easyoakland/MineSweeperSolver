@@ -54,6 +54,7 @@ class Game:
             quit()
         else:
             self._width, self._height, self._cellwidth, self._cellheight, self._origin, self._end, self._grid = temp
+        self.frontier = [] #initialize frontier que
 
     def determineLayout(self):
         # First makes sure there was a recognized cell, then
@@ -180,20 +181,29 @@ class Game:
     # screenshot board
     def setBoardScreenshot(self):
         self.boardIm = pyautogui.screenshot(region=(
-                self._origin[0], self._origin[1], self._end[0]+self._cellwidth-self._origin[0], self._end[1]+self._cellheight-self._origin[1]))
+            self._origin[0], self._origin[1], self._end[0]+self._cellwidth-self._origin[0], self._end[1]+self._cellheight-self._origin[1]))
 
-    # find new cell IDs algorithm
+    # find new cell IDs algorithm by
+    # if cell's ID is different from array:
+    # updating cell's ID in array if it is different,
+    # if it is a number adding it to the frontier,
+    # and if the cell is a complete, recursively check its neighbors the same way
+    # else: do nothing since the cell is as expected from its ID in the Game.cellArray
     def updateCellArray(self, cord):
         cell = Cell(cord, self)
-        # if cell has updated
-        if self.cellArray[self.convertCordToOffset(cell.cord)] != cell.ID:
-            self.cellArray[self.convertCordToOffset(
-                cell.cord)] = cell.ID  # update its ID
-            # check neighbors of updated cell to see if they also updated
-            for neighbor in cell.neighbors(1, self):
-                if cell.ID != "complete.png":  # no need to check neighbors of a non complete cell because new cells must be touching completed cells
-                    continue  # so skip this neighbor and go to next
-                self.updateCellArray(neighbor)
+        # if cell ID is different from recorded for that cell
+        if cell.ID != self.cellArray[self.convertCordToOffset(cell.cord)]:
+            # update ID record for that cell
+            self.cellArray[self.convertCordToOffset(cell.cord)] = cell.ID
+            # if it is a number
+            if 0 < self.possibleCellsDict[cell.ID] <9:
+                # add cell to frontier
+                    self.frontier.append(cell)
+            # if it is a complete
+            if cell.ID == "complete.png":
+                # updateCellArray on its neighbors
+                for neighbor in cell.neighbors(1, self):
+                    self.updateCellArray(neighbor)
         else:
             return
 
@@ -222,7 +232,7 @@ class Game:
                 flagCnt += 1
         # if that number is the same as the number on this cell then all unrevealed cells are all bombs
         # if flag+unrevealed = total bombs around cell
-        if flagCnt+unrevealedCnt == self.possibleCellToValueDict[cell.ID]:
+        if flagCnt+unrevealedCnt == self.possibleCellsDict[cell.ID]:
             for neighbor in cell.neighbors(1, self):
                 # if neighboring cell is unrevealed
                 if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
@@ -242,7 +252,7 @@ class Game:
                 flagCnt += 1
         # if the number of flags the same as the number on this cell then all unrevealed cells are all safe
         # check for flagCnt is equal to cell number
-        if flagCnt == self.possibleCellToValueDict[cell.ID]:
+        if flagCnt == self.possibleCellsDict[cell.ID]:
             for neighbor in cell.neighbors(1, self):
                 # if neighboring cell is unrevealed
                 if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
