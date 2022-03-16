@@ -51,7 +51,7 @@ while somethingHappened:
             # FOR TESTING
             # print("At a: " + ID + " Nothing happened near: " +
             #       str(game.convertOffsetToCord(i)))
-    print("Repeating" + str(somethingHappened))
+    # print("Repeating" + str(somethingHappened))
 
 a = pyautogui.locateOnScreen("victory.png")
 if a == None:

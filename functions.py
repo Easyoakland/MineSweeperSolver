@@ -100,11 +100,10 @@ class Game:
         return None
 
     # identify again but this time using a screenshot passed in instead
-    def identifyCell2(self, cord, boardIm=None):
-        boardIm = self.boardScreenshot(boardIm=boardIm)
+    def identifyCell2(self, cord):
         pos = self.convertCordToPos(cord)
         for possibleCell in self.possibleCells:
-            if pyautogui.locate(possibleCell, boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight)) != None:
+            if pyautogui.locate(possibleCell, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight)) != None:
                 return possibleCell
         return None
 
@@ -179,16 +178,13 @@ class Game:
     possibleCells = property(getPossibleCells, setPossibleCells)
 
     # screenshot board
-    def boardScreenshot(self, boardIm=None):
-        if boardIm == None:  # if no image of the board was given, get one
-            boardIm = pyautogui.screenshot(region=(
+    def setBoardScreenshot(self):
+        self.boardIm = pyautogui.screenshot(region=(
                 self._origin[0], self._origin[1], self._end[0]+self._cellwidth-self._origin[0], self._end[1]+self._cellheight-self._origin[1]))
-        return boardIm
 
     # find new cell IDs algorithm
-    def updateCellArray(self, cord, boardIm=None):
-        boardIm = self.boardScreenshot(boardIm=boardIm)
-        cell = Cell(cord, self, boardIm)
+    def updateCellArray(self, cord):
+        cell = Cell(cord, self)
         # if cell has updated
         if self.cellArray[self.convertCordToOffset(cell.cord)] != cell.ID:
             self.cellArray[self.convertCordToOffset(
@@ -205,6 +201,7 @@ class Game:
     def reveal(self, cord):
         self.click(cord)
         sleep(0.1)
+        self.setBoardScreenshot()
         self.updateCellArray(cord)
 
     # Flag tile at cord then update cell Id at location to flag
@@ -256,9 +253,8 @@ class Game:
 
 # Handles an individual cell on the board
 class Cell:
-    def __init__(self, cord, Game, boardIm=None):
-        boardIm = Game.boardScreenshot(boardIm=boardIm)
-        self._ID = Game.identifyCell2(cord, boardIm)
+    def __init__(self, cord, Game):
+        self._ID = Game.identifyCell2(cord)
         self.cord = cord
         # self._width, self._height = Game.getWidth(), Game.getHeight()
 
@@ -291,7 +287,7 @@ class Cell:
 
     # set ID
     def setID(self, game):
-        self._ID = Game.identifyCell2(self.cord, boardIm)
+        self._ID = Game.identifyCell2(self.cord)
 
     # get ID
     def getID(self):
