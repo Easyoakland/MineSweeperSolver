@@ -1,6 +1,5 @@
 import pyautogui
 from time import sleep
-import time #TODO remove this
 # click top left cell
 # pyautogui.click(grid[0])
 
@@ -102,14 +101,11 @@ class Game:
 
     # identify again but this time using a screenshot passed in instead
     def identifyCell2(self, cord, boardIm=None):
-        start = time.time() #TODO remove this
         boardIm = self.boardScreenshot(boardIm=boardIm)
         pos = self.convertCordToPos(cord)
         for possibleCell in self.possibleCells:
             if pyautogui.locate(possibleCell, boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight)) != None:
                 return possibleCell
-        end = time.time() #TODO remove this
-        print(end-start) # TODO remove this
         return None
 
     # same as identify cell but takes pixel location

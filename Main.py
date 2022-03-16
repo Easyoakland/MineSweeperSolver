@@ -5,8 +5,6 @@ import init
 # TODO Change identification function to use pixel color since identifyCell currently takes way too long
 
 # TODO logic
-# 1. If the number of cells is equal to the number on the tile then they are all bombs
-# 2. If the number of bombs around a cell is equal to the cell the rest are not bombs
 # 3. Implement linked cells
 
 
@@ -21,10 +19,10 @@ game = Game()  # setup game class instance
 
 # Define the possible cells there are
 game.possibleCells = ["1.png", "2.png", "3.png",
-                      "4.png", "5.png", "flag.png", "cell.png", "complete.png"]
+                      "4.png", "5.png", "6.png", "7.png", "8.png", "flag.png", "cell.png", "complete.png"]
 
 game.possibleCellToValueDict = {"1.png": 1, "2.png": 2, "3.png": 3,
-                                "4.png": 4, "5.png": 5, "flag.png": -1, "cell.png": 9, "complete.png": 0}
+                                "4.png": 4, "5.png": 5, "6.png": 6, "7.png": 7, "8.png": 8, "flag.png": -1, "cell.png": 9, "complete.png": 0}
 
 # This is too slow to run every logical cycle:
 # make list of IDs for all cells
