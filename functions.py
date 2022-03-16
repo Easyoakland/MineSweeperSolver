@@ -11,7 +11,10 @@ from time import sleep
 
 
 # This exists so the exception can be called to break to outer loop
-# used by putting inner loop in a try: except ContinueOuterLoop
+# used by putting inner loop in a
+# try:
+# except ContinueOuterLoop:
+    # pass
 # and doing "raise ContinueOuterLoop" when wanting to continue at outer loop
 class ContinueOuterLoop(Exception):
     pass
