@@ -2,14 +2,14 @@ from functions import *
 import pyautogui
 import init
 
-# TODO Change identification function to use pixel color since identifyCell currently takes way too long
+# TODO Change identification to something faster because allmost all computation time is spent on locate function
+
+# TODO don't pass Game to Cell class. Instead pass ID directly
 
 # TODO logic
-# 3. Implement linked cells
-
-
-# TODO give cell a number of mines property
-# iterate through grid creating a cell class instance for each
+# 3. Implement linked cells (1 bomb among group of cells)
+    # if two linked cells overlap completely then the un-overlapped part is safe
+# 4. Probability?
 
 # remove artificial pausing. use ctrl-alt-delete if needed to abort program
 pyautogui.PAUSE = 0
@@ -49,21 +49,23 @@ while game.frontier and i < 2*len(game.frontier):
     # this try loop will abort the inner for loop if currentCell is determined to still be part of the frontier
     try:
         # for any neighbor of currentCell
-        for neighbor in currentCell.neighbors(1, game):
-            neighborCell = Cell(neighbor, game)
+        for neighbor in currentCell.neighbors(1, game._width, game._height):
             # if that cell is an unexplored cell
-            if neighborCell.ID == "cell.png":
+            if game.identifyCell2(neighbor) == "cell.png":
                 # then currentCell is still part of the frontier
                 # Also don't need to check any other neighbors to see if they are also unrevealed so loop exited
                 game.frontier.append(currentCell)
                 raise ContinueOuterLoop
     except ContinueOuterLoop:
         pass
+    print("Frontier len: " + str(len(game.frontier)))
 
 # guess was required if the loop stopped but there victory isn't displayed
 a = pyautogui.locateOnScreen("victory.png")
 if a == None:
     print("Guess was required")
+else:
+    print("VICTORY!")
 
 # clear file contents
 with open('FinalGrid.csv', 'w') as file:

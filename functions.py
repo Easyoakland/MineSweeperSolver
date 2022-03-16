@@ -14,7 +14,7 @@ from time import sleep
 # used by putting inner loop in a
 # try:
 # except ContinueOuterLoop:
-    # pass
+# pass
 # and doing "raise ContinueOuterLoop" when wanting to continue at outer loop
 class ContinueOuterLoop(Exception):
     pass
@@ -57,7 +57,7 @@ class Game:
             quit()
         else:
             self._width, self._height, self._cellwidth, self._cellheight, self._origin, self._end, self._grid = temp
-        self.frontier = [] #initialize frontier que
+        self.frontier = []  # initialize frontier que
 
     def determineLayout(self):
         # First makes sure there was a recognized cell, then
@@ -103,7 +103,7 @@ class Game:
                 return possibleCell
         return None
 
-    # identify again but this time using a screenshot passed in instead
+    # identify again but this time using a screenshot passed in instead for speed
     def identifyCell2(self, cord):
         pos = self.convertCordToPos(cord)
         for possibleCell in self.possibleCells:
@@ -111,12 +111,8 @@ class Game:
                 return possibleCell
         return None
 
-    # same as identify cell but takes pixel location
-    def identifyCellAtPos(self, pos):
-        for possibleCell in self.possibleCells:
-            if pyautogui.locateOnScreen(possibleCell, region=(pos[0], pos[1], self._cellwidth, self._cellheight)) != None:
-                return possibleCell
-        return None
+    # identify using hash instead. Hopefully this is way faster
+    # TODO
 
     # convert grid cordinate to pixel position
     def convertCordToPos(self, cord):
@@ -191,21 +187,21 @@ class Game:
     # updating cell's ID in array if it is different,
     # if it is a number adding it to the frontier,
     # and if the cell is a complete, recursively check its neighbors the same way
-    # else: do nothing since the cell is as expected from its ID in the Game.cellArray
+    # else: do nothing since the cell is as expected from its ID in the cellArray
     def updateCellArray(self, cord):
-        cell = Cell(cord, self)
+        cell = Cell(cord, self.identifyCell2(cord))
         # if cell ID is different from recorded for that cell
         if cell.ID != self.cellArray[self.convertCordToOffset(cell.cord)]:
             # update ID record for that cell
             self.cellArray[self.convertCordToOffset(cell.cord)] = cell.ID
             # if it is a number
-            if 0 < self.possibleCellsDict[cell.ID] <9:
+            if 0 < self.possibleCellsDict[cell.ID] < 9:
                 # add cell to frontier
-                    self.frontier.append(cell)
+                self.frontier.append(cell)
             # if it is a complete
             if cell.ID == "complete.png":
                 # updateCellArray on its neighbors
-                for neighbor in cell.neighbors(1, self):
+                for neighbor in cell.neighbors(1, self._width, self._height):
                     self.updateCellArray(neighbor)
         else:
             return
@@ -213,7 +209,7 @@ class Game:
     # Reveal tile at cord then update cell Id's starting at clicked location
     def reveal(self, cord):
         self.click(cord)
-        sleep(0.1)
+        sleep(0.07)
         self.setBoardScreenshot()
         self.updateCellArray(cord)
 
@@ -228,7 +224,7 @@ class Game:
         unrevealedCnt = 0
         flagCnt = 0
         # check neighbors of cell to see how many are unrevealed and how many are flags
-        for neighbor in cell.neighbors(1, self):
+        for neighbor in cell.neighbors(1, self._width,self._height):
             if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
                 unrevealedCnt += 1
             elif self.cellArray[self.convertCordToOffset(neighbor)] == "flag.png":
@@ -236,7 +232,7 @@ class Game:
         # if that number is the same as the number on this cell then all unrevealed cells are all bombs
         # if flag+unrevealed = total bombs around cell
         if flagCnt+unrevealedCnt == self.possibleCellsDict[cell.ID]:
-            for neighbor in cell.neighbors(1, self):
+            for neighbor in cell.neighbors(1, self._width, self._height):
                 # if neighboring cell is unrevealed
                 if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
                     self.flag(neighbor)
@@ -244,19 +240,18 @@ class Game:
         return somethingHappened
 
     # Logical Rule 2: If the number of flags around the cell equals the number of the cell all unrevealed cells are safe
-
     def rule2(self, cell):
         somethingHappened = False
         unrevealedCnt = 0
         flagCnt = 0
         # check neighbors of cell to see how many are flags
-        for neighbor in cell.neighbors(1, self):
+        for neighbor in cell.neighbors(1, self._width, self._height):
             if self.cellArray[self.convertCordToOffset(neighbor)] == "flag.png":
                 flagCnt += 1
         # if the number of flags the same as the number on this cell then all unrevealed cells are all safe
         # check for flagCnt is equal to cell number
         if flagCnt == self.possibleCellsDict[cell.ID]:
-            for neighbor in cell.neighbors(1, self):
+            for neighbor in cell.neighbors(1, self._width, self._height):
                 # if neighboring cell is unrevealed
                 if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
                     self.reveal(neighbor)
@@ -266,13 +261,12 @@ class Game:
 
 # Handles an individual cell on the board
 class Cell:
-    def __init__(self, cord, Game):
-        self._ID = Game.identifyCell2(cord)
+    def __init__(self, cord, ID):
+        self.ID = ID
         self.cord = cord
-        # self._width, self._height = Game.getWidth(), Game.getHeight()
 
     # returns cords of all neighbors that exist
-    def neighbors(self, radius, game):
+    def neighbors(self, radius, width, height):
         neighbors = []
         # goes from left to right and from top to bottom generating neighbor cords
         # each radius increases number of cells in each dimension by 2 starting with 1 cell at radius = 0
@@ -291,19 +285,9 @@ class Cell:
                 neighbors.remove(cord)
                 i -= 1  # move back since index of list will have shifted back
             # neighbor has cordinate larger than board
-            elif cord[0] > game._width-1 or cord[1] > game._height-1:
+            elif cord[0] > width-1 or cord[1] > height-1:
                 neighbors.remove(cord)
                 i -= 1  # move back since index of list will have shifted back
             i += 1
         # returns neighbors list
         return neighbors
-
-    # set ID
-    def setID(self, game):
-        self._ID = Game.identifyCell2(self.cord)
-
-    # get ID
-    def getID(self):
-        return self._ID
-
-    ID = property(getID, setID)
