@@ -1,6 +1,6 @@
 import pyautogui
 from time import sleep
-
+import time #TODO remove this
 # click top left cell
 # pyautogui.click(grid[0])
 
@@ -11,12 +11,20 @@ from time import sleep
 # pyautogui.click(grid[(2*width)-1])
 
 
+# This exists so the exception can be called to break to outer loop
+# used by putting inner loop in a try: except ContinueOuterLoop
+# and doing "raise ContinueOuterLoop" when wanting to continue at outer loop
+class ContinueOuterLoop(Exception):
+    pass
+
+
 # acts like enumerate but optionally takes value for start index and/or step of index
 # to understand generators: https://www.youtube.com/watch?v=u3T7hmLthUU
 def enumerateVariableIndex(toIterate, start=0, step=1):
     for item in toIterate:
         yield(start, item)
         start += step
+
 
 # acts like enumerate but optionally takes value for start index and/or step
 def enumerateVariableSpeed(toIterate, start=0, step=1):
@@ -25,6 +33,16 @@ def enumerateVariableSpeed(toIterate, start=0, step=1):
             return
         yield(i, toIterate[start])
         start += step
+
+
+# generator that turns a given sequence into one where using the INSTANCE_NAME.send(True) function on the generator restarts to the beginning of the sequence
+def restartable(seq):
+    while(True):
+        for item in seq:
+            restart = yield item
+            if restart:
+                break
+        return
 
 
 # Handles info about board itself
@@ -83,11 +101,15 @@ class Game:
         return None
 
     # identify again but this time using a screenshot passed in instead
-    def identifyCell2(self, cord, boardIm):
+    def identifyCell2(self, cord, boardIm=None):
+        start = time.time() #TODO remove this
+        boardIm = self.boardScreenshot(boardIm=boardIm)
         pos = self.convertCordToPos(cord)
         for possibleCell in self.possibleCells:
             if pyautogui.locate(possibleCell, boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight)) != None:
                 return possibleCell
+        end = time.time() #TODO remove this
+        print(end-start) # TODO remove this
         return None
 
     # same as identify cell but takes pixel location
@@ -196,6 +218,7 @@ class Game:
 
     # Logical Rule 1: If the number of unrevealed cells is equal to the number of bombs left around the cell then the unrevealed cells are bombs
     def rule1(self, cell):
+        somethingHappened = False
         unrevealedCnt = 0
         flagCnt = 0
         # check neighbors of cell to see how many are unrevealed and how many are flags
@@ -211,13 +234,13 @@ class Game:
                 # if neighboring cell is unrevealed
                 if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
                     self.flag(neighbor)
-            return cell
-        else: #if that number is different and this didn't do anything
-            return None
-
+                    somethingHappened = True  # return true if this changed the grid
+        return somethingHappened
 
     # Logical Rule 2: If the number of flags around the cell equals the number of the cell all unrevealed cells are safe
+
     def rule2(self, cell):
+        somethingHappened = False
         unrevealedCnt = 0
         flagCnt = 0
         # check neighbors of cell to see how many are flags
@@ -231,6 +254,8 @@ class Game:
                 # if neighboring cell is unrevealed
                 if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
                     self.reveal(neighbor)
+                    somethingHappened = True  # this did something so return true
+        return somethingHappened
 
 
 # Handles an individual cell on the board
