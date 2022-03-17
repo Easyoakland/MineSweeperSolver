@@ -106,14 +106,22 @@ class Game:
 
     # identify again but this time using a screenshot passed in instead for speed
     def identifyCell2(self, cord):
+        # only unchecked cells can update so don't bother checking if it wasn't an unchecked cell last time it was updated
+        temp = self.IDLst[self.convertCordToOffset(cord)]
+        if temp != "cell.png":
+            return temp
         pos = self.convertCordToPos(cord)
         # testing
         # TODO remove this next line
-        # pyautogui.moveTo(pos[0],pos[1])
+        pyautogui.moveTo(pos[0],pos[1])
         for i, cellTypeIm in enumerate(self.cellTypeIms):
             if pyautogui.locate(cellTypeIm, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight), grayscale=True) != None:
                 return self.cellTypes[i]
         return None
+
+    # returns cached value for cell for faster ID time
+    def recallCellID(self, cord):
+        self.IDLst[self.convertCordToOffset(cord)]
 
     # convert grid cordinate to pixel position
     def convertCordToPos(self, cord):
@@ -191,8 +199,9 @@ class Game:
     # and if the cell is a complete, recursively check its neighbors the same way
     # else: do nothing since the cell is as expected from its ID in the IDLst
     def updateIDLst(self, cord):
-        # only cells can update so don't bother checking if it wasn't a cell last time you checked
-        if self.IDLst[self.convertCordToOffset(cord)] != "cell.png":
+        # only unchecked cells can update so don't bother checking if it wasn't an unchecked cell last time it was updated
+        temp = self.IDLst[self.convertCordToOffset(cord)]
+        if temp != "cell.png":
             return
         cell = Cell(cord, self.identifyCell2(cord))
         # if cell ID is different from recorded for that cell
@@ -207,8 +216,7 @@ class Game:
             elif 0 < self.cellTypesDict[cell.ID] < 9:
                 # add cell to frontier
                 self.frontier.append(cell)
-            # if it is a complete
-
+        # if it is a complete
         else:
             return
 

@@ -12,7 +12,7 @@ import cv2
     # if two linked cells overlap completely then the un-overlapped part is safe
 # 4. Probability?
 
-# remove artificial pausing. use ctrl-alt-delete if needed to abort program
+# remove artificial pausing. use ctrl-alt-delete or alt-tab and ctrl-c if needed to abort program
 pyautogui.PAUSE = 0
 pyautogui.FAILSAFE = False
 
@@ -49,20 +49,18 @@ while game.frontier and i < 2*len(game.frontier):
     # run rule 1 and 2 and if both didn't do anything somethingHappened=False
     somethingHappened = game.rule1(currentCell) or game.rule2(currentCell)
     # if an action was performed reset loop countdown to forceful termination
+    # this try loop will abort the inner for loop if currentCell is determined to still be part of the frontier
     if somethingHappened:
         i = 0
-    # this try loop will abort the inner for loop if currentCell is determined to still be part of the frontier
-    try:
-        # for any neighbor of currentCell
-        for neighbor in currentCell.neighbors(1, game._width, game._height):
-            # if that cell is an unexplored cell
-            if game.identifyCell2(neighbor) == "cell.png":
-                # then currentCell is still part of the frontier
-                # Also don't need to check any other neighbors to see if they are also unrevealed so loop exited
-                game.frontier.append(currentCell)
-                raise ContinueOuterLoop
-    except ContinueOuterLoop:
-        pass
+        continue # no need to check if cell is still in frontier because it is known that it isn't
+    # for any neighbor of currentCell
+    for neighbor in currentCell.neighbors(1, game._width, game._height):
+        # if that cell is an unexplored cell
+        if game.recallCellID(neighbor) == "cell.png":
+            # then currentCell is still part of the frontier
+            # Also don't need to check any other neighbors to see if they are also unrevealed so loop exited
+            game.frontier.append(currentCell)
+
     # this tests how frontier changes
     # print("Frontier len: " + str(len(game.frontier)))
 
