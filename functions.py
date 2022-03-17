@@ -210,8 +210,11 @@ class Game:
     # Reveal tile at cord then update cell Id's starting at clicked location
     def reveal(self, cord):
         self.click(cord)
-        sleep(0.07)
-        self.setBoardScreenshot()
+        a = "cell.png"
+        while a =="cell.png":
+            sleep(0.01)
+            self.setBoardScreenshot()
+            a = self.identifyCell2(cord)
         self.updateIDLst(cord)
 
     # Flag tile at cord then update cell Id at location to flag
