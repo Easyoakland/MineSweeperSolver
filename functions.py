@@ -58,7 +58,7 @@ class Game:
         else:
             self._width, self._height, self._cellwidth, self._cellheight, self._origin, self._end, self._grid = temp
         self.frontier = []  # initialize frontier que
-        self.cellTypeIms = [] # initialize list to be filled with images of each cell type
+        self.cellTypeIms = []  # initialize list to be filled with images of each cell type
 
     def determineLayout(self):
         # First makes sure there was a recognized cell, then
@@ -107,8 +107,11 @@ class Game:
     # identify again but this time using a screenshot passed in instead for speed
     def identifyCell2(self, cord):
         pos = self.convertCordToPos(cord)
+        # testing
+        # TODO remove this next line
+        # pyautogui.moveTo(pos[0],pos[1])
         for i, cellTypeIm in enumerate(self.cellTypeIms):
-            if pyautogui.locate(cellTypeIm, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight), grayscale = True) != None:
+            if pyautogui.locate(cellTypeIm, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight), grayscale=True) != None:
                 return self.cellTypes[i]
         return None
 
@@ -175,6 +178,7 @@ class Game:
 
     cellTypes = property(getcellTypes, setcellTypes)
 
+    # see if inputs can be optionally manual
     # screenshot board
     def setBoardScreenshot(self):
         self.boardIm = pyautogui.screenshot(region=(
@@ -187,20 +191,24 @@ class Game:
     # and if the cell is a complete, recursively check its neighbors the same way
     # else: do nothing since the cell is as expected from its ID in the IDLst
     def updateIDLst(self, cord):
+        # only cells can update so don't bother checking if it wasn't a cell last time you checked
+        if self.IDLst[self.convertCordToOffset(cord)] != "cell.png":
+            return
         cell = Cell(cord, self.identifyCell2(cord))
         # if cell ID is different from recorded for that cell
-        if cell.ID != self.IDLst[self.convertCordToOffset(cell.cord)]:
+        if cell.ID != self.IDLst[self.convertCordToOffset(cord)]:
             # update ID record for that cell
             self.IDLst[self.convertCordToOffset(cell.cord)] = cell.ID
-            # if it is a number
-            if 0 < self.cellTypesDict[cell.ID] < 9:
-                # add cell to frontier
-                self.frontier.append(cell)
-            # if it is a complete
             if cell.ID == "complete.png":
                 # updateIDLst on its neighbors
                 for neighbor in cell.neighbors(1, self._width, self._height):
                     self.updateIDLst(neighbor)
+            # if it is a number
+            elif 0 < self.cellTypesDict[cell.ID] < 9:
+                # add cell to frontier
+                self.frontier.append(cell)
+            # if it is a complete
+
         else:
             return
 
@@ -208,8 +216,8 @@ class Game:
     def reveal(self, cord):
         self.click(cord)
         a = "cell.png"
-        while a =="cell.png":
-            sleep(0.01)
+        while a == "cell.png":
+            sleep(0.05)
             self.setBoardScreenshot()
             a = self.identifyCell2(cord)
         self.updateIDLst(cord)
@@ -225,7 +233,7 @@ class Game:
         unrevealedCnt = 0
         flagCnt = 0
         # check neighbors of cell to see how many are unrevealed and how many are flags
-        for neighbor in cell.neighbors(1, self._width,self._height):
+        for neighbor in cell.neighbors(1, self._width, self._height):
             if self.IDLst[self.convertCordToOffset(neighbor)] == "cell.png":
                 unrevealedCnt += 1
             elif self.IDLst[self.convertCordToOffset(neighbor)] == "flag.png":
