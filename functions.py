@@ -99,7 +99,7 @@ class Game:
     # # if the image matches the if statement will be true and the image's string will be returned
     # def identifyCell(self, cord):
     #     pos = self.convertCordToPos(cord)
-    #     for possibleCell in self.possibleCells:
+    #     for possibleCell in self.cellTypes:
     #         if pyautogui.locateOnScreen(possibleCell, region=(pos[0], pos[1], self._cellwidth, self._cellheight)) != None:
     #             return possibleCell
     #     return None
@@ -109,7 +109,7 @@ class Game:
         pos = self.convertCordToPos(cord)
         for i, cellTypeIm in enumerate(self.cellTypeIms):
             if pyautogui.locate(cellTypeIm, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight)) != None:
-                return self.possibleCells[i]
+                return self.cellTypes[i]
         return None
 
     # identify using hash instead. Hopefully this is way faster
@@ -160,13 +160,13 @@ class Game:
     def clickPos(self, pos):
         pyautogui.click(pos)
 
-    # possibleCells setter
-    def setPossibleCells(self, possibleCells):
-        self._possibleCells = possibleCells
+    # cellTypes setter
+    def setcellTypes(self, cellTypes):
+        self._cellTypes = cellTypes
 
-    # possibleCells getter
-    def getPossibleCells(self):
-        return self._possibleCells
+    # cellTypes getter
+    def getcellTypes(self):
+        return self._cellTypes
 
     # width getter
     def getWidth(self):
@@ -176,7 +176,7 @@ class Game:
     def getHeight(self):
         return self._height
 
-    possibleCells = property(getPossibleCells, setPossibleCells)
+    cellTypes = property(getcellTypes, setcellTypes)
 
     # screenshot board
     def setBoardScreenshot(self):
@@ -188,22 +188,22 @@ class Game:
     # updating cell's ID in array if it is different,
     # if it is a number adding it to the frontier,
     # and if the cell is a complete, recursively check its neighbors the same way
-    # else: do nothing since the cell is as expected from its ID in the cellArray
-    def updateCellArray(self, cord):
+    # else: do nothing since the cell is as expected from its ID in the IDLst
+    def updateIDLst(self, cord):
         cell = Cell(cord, self.identifyCell2(cord))
         # if cell ID is different from recorded for that cell
-        if cell.ID != self.cellArray[self.convertCordToOffset(cell.cord)]:
+        if cell.ID != self.IDLst[self.convertCordToOffset(cell.cord)]:
             # update ID record for that cell
-            self.cellArray[self.convertCordToOffset(cell.cord)] = cell.ID
+            self.IDLst[self.convertCordToOffset(cell.cord)] = cell.ID
             # if it is a number
-            if 0 < self.possibleCellsDict[cell.ID] < 9:
+            if 0 < self.cellTypesDict[cell.ID] < 9:
                 # add cell to frontier
                 self.frontier.append(cell)
             # if it is a complete
             if cell.ID == "complete.png":
-                # updateCellArray on its neighbors
+                # updateIDLst on its neighbors
                 for neighbor in cell.neighbors(1, self._width, self._height):
-                    self.updateCellArray(neighbor)
+                    self.updateIDLst(neighbor)
         else:
             return
 
@@ -212,12 +212,12 @@ class Game:
         self.click(cord)
         sleep(0.07)
         self.setBoardScreenshot()
-        self.updateCellArray(cord)
+        self.updateIDLst(cord)
 
     # Flag tile at cord then update cell Id at location to flag
     def flag(self, cord):
         self.clickR(cord)
-        self.cellArray[self.convertCordToOffset(cord)] = "flag.png"
+        self.IDLst[self.convertCordToOffset(cord)] = "flag.png"
 
     # Logical Rule 1: If the number of unrevealed cells is equal to the number of bombs left around the cell then the unrevealed cells are bombs
     def rule1(self, cell):
@@ -226,16 +226,16 @@ class Game:
         flagCnt = 0
         # check neighbors of cell to see how many are unrevealed and how many are flags
         for neighbor in cell.neighbors(1, self._width,self._height):
-            if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
+            if self.IDLst[self.convertCordToOffset(neighbor)] == "cell.png":
                 unrevealedCnt += 1
-            elif self.cellArray[self.convertCordToOffset(neighbor)] == "flag.png":
+            elif self.IDLst[self.convertCordToOffset(neighbor)] == "flag.png":
                 flagCnt += 1
         # if that number is the same as the number on this cell then all unrevealed cells are all bombs
         # if flag+unrevealed = total bombs around cell
-        if flagCnt+unrevealedCnt == self.possibleCellsDict[cell.ID]:
+        if flagCnt+unrevealedCnt == self.cellTypesDict[cell.ID]:
             for neighbor in cell.neighbors(1, self._width, self._height):
                 # if neighboring cell is unrevealed
-                if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
+                if self.IDLst[self.convertCordToOffset(neighbor)] == "cell.png":
                     self.flag(neighbor)
                     somethingHappened = True  # return true if this changed the grid
         return somethingHappened
@@ -247,14 +247,14 @@ class Game:
         flagCnt = 0
         # check neighbors of cell to see how many are flags
         for neighbor in cell.neighbors(1, self._width, self._height):
-            if self.cellArray[self.convertCordToOffset(neighbor)] == "flag.png":
+            if self.IDLst[self.convertCordToOffset(neighbor)] == "flag.png":
                 flagCnt += 1
         # if the number of flags the same as the number on this cell then all unrevealed cells are all safe
         # check for flagCnt is equal to cell number
-        if flagCnt == self.possibleCellsDict[cell.ID]:
+        if flagCnt == self.cellTypesDict[cell.ID]:
             for neighbor in cell.neighbors(1, self._width, self._height):
                 # if neighboring cell is unrevealed
-                if self.cellArray[self.convertCordToOffset(neighbor)] == "cell.png":
+                if self.IDLst[self.convertCordToOffset(neighbor)] == "cell.png":
                     self.reveal(neighbor)
                     somethingHappened = True  # this did something so return true
         return somethingHappened
