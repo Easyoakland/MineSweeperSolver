@@ -1,6 +1,9 @@
+import init
 from functions import *
 import pyautogui
-import init
+import cv2
+
+# rename possibleCells to cellTypes
 
 # TODO Change identification to something faster because allmost all computation time is spent on locate function
 
@@ -19,8 +22,12 @@ game = Game()  # setup game class instance
 game.possibleCells = ["1.png", "2.png", "3.png",
                       "4.png", "5.png", "6.png", "7.png", "8.png", "flag.png", "cell.png", "complete.png"]
 
+# save files to memory instead of repeatedly accessing them
+for possibleCell in game.possibleCells:
+    game.cellTypeIms.append(cv2.imread(possibleCell))
+
 game.possibleCellsDict = {"1.png": 1, "2.png": 2, "3.png": 3,
-                          "4.png": 4, "5.png": 5, "6.png": 6, "7.png": 7, "8.png": 8, "flag.png": -1, "cell.png": 9, "complete.png": 0}
+                          "4.png": 4, "5.png": 5, "6.png": 6, "7.png": 7, "8.png": 8, "flag.png": 9, "cell.png": 10, "complete.png": 11}
 
 # This is too slow to run every logical cycle:
 # make list of IDs for all cells
@@ -36,7 +43,7 @@ i = 0
 # game.frontier evaluates to true while frontier has an element
 # the second element will evaluate to false if the iterator goes larger than frontier
 # the iterator is being used as a countdown to forcefully terminating loop
-while game.frontier and i < 2*len(game.frontier):
+while game.frontier and i < len(game.frontier):
     i+=1
     currentCell = game.frontier.pop(0)  # pop off first element
     # run rule 1 and 2 and if both didn't do anything somethingHappened=False
@@ -56,7 +63,8 @@ while game.frontier and i < 2*len(game.frontier):
                 raise ContinueOuterLoop
     except ContinueOuterLoop:
         pass
-    print("Frontier len: " + str(len(game.frontier)))
+    # this tests how frontier changes
+    # print("Frontier len: " + str(len(game.frontier)))
 
 # guess was required if the loop stopped but there victory isn't displayed
 a = pyautogui.locateOnScreen("victory.png")

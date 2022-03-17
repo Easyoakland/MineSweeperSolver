@@ -58,6 +58,7 @@ class Game:
         else:
             self._width, self._height, self._cellwidth, self._cellheight, self._origin, self._end, self._grid = temp
         self.frontier = []  # initialize frontier que
+        self.cellTypeIms = [] # initialize list to be filled with images of each cell type
 
     def determineLayout(self):
         # First makes sure there was a recognized cell, then
@@ -106,9 +107,9 @@ class Game:
     # identify again but this time using a screenshot passed in instead for speed
     def identifyCell2(self, cord):
         pos = self.convertCordToPos(cord)
-        for possibleCell in self.possibleCells:
-            if pyautogui.locate(possibleCell, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight)) != None:
-                return possibleCell
+        for i, cellTypeIm in enumerate(self.cellTypeIms):
+            if pyautogui.locate(cellTypeIm, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight)) != None:
+                return self.possibleCells[i]
         return None
 
     # identify using hash instead. Hopefully this is way faster
