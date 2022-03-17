@@ -121,7 +121,7 @@ class Game:
 
     # returns cached value for cell for faster ID time
     def recallCellID(self, cord):
-        self.IDLst[self.convertCordToOffset(cord)]
+        return self.IDLst[self.convertCordToOffset(cord)]
 
     # convert grid cordinate to pixel position
     def convertCordToPos(self, cord):

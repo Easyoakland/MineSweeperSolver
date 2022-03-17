@@ -5,7 +5,7 @@ import cv2
 
 # rename cellTypes to cellTypes
 
-# TODO Change identification to something faster because allmost all computation time is spent on locate function
+# TODO check why it gets stuck in an infinite loop
 
 # TODO logic
 # 3. Implement linked cells (1 bomb among group of cells)
