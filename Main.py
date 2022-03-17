@@ -9,7 +9,7 @@ import cv2
 
 # TODO logic
 # 3. Implement linked cells (1 bomb among group of cells)
-    # if two linked cells overlap completely then the un-overlapped part is safe
+# if two linked cells overlap completely then the un-overlapped part is safe
 # 4. Probability?
 
 # remove artificial pausing. use ctrl-alt-delete or alt-tab and ctrl-c if needed to abort program
@@ -20,14 +20,14 @@ game = Game()  # setup game class instance
 
 # Define the possible cells there are
 game.cellTypes = ["1.png", "2.png", "3.png",
-                      "4.png", "5.png", "6.png", "7.png", "8.png", "flag.png", "cell.png", "complete.png"]
+                  "4.png", "5.png", "6.png", "7.png", "8.png", "flag.png", "cell.png", "complete.png"]
 
 # save files to memory instead of repeatedly accessing them
 for possibleCell in game.cellTypes:
     game.cellTypeIms.append(cv2.imread(possibleCell))
 
 game.cellTypesDict = {"1.png": 1, "2.png": 2, "3.png": 3,
-                          "4.png": 4, "5.png": 5, "6.png": 6, "7.png": 7, "8.png": 8, "flag.png": 9, "cell.png": 10, "complete.png": 11}
+                      "4.png": 4, "5.png": 5, "6.png": 6, "7.png": 7, "8.png": 8, "flag.png": 9, "cell.png": 10, "complete.png": 11}
 
 # This is too slow to run every logical cycle:
 # make list of IDs for all cells
@@ -44,7 +44,7 @@ i = 0
 # the second element will evaluate to false if the iterator goes larger than frontier
 # the iterator is being used as a countdown to forcefully terminating loop
 while game.frontier and i < 2*len(game.frontier):
-    i+=1
+    i += 1
     currentCell = game.frontier.pop(0)  # pop off first element
     # run rule 1 and 2 and if both didn't do anything somethingHappened=False
     somethingHappened = game.rule1(currentCell) or game.rule2(currentCell)
@@ -52,14 +52,20 @@ while game.frontier and i < 2*len(game.frontier):
     # this try loop will abort the inner for loop if currentCell is determined to still be part of the frontier
     if somethingHappened:
         i = 0
-        continue # no need to check if cell is still in frontier because it is known that it isn't
-    # for any neighbor of currentCell
-    for neighbor in currentCell.neighbors(1, game._width, game._height):
-        # if that cell is an unexplored cell
-        if game.recallCellID(neighbor) == "cell.png":
-            # then currentCell is still part of the frontier
-            # Also don't need to check any other neighbors to see if they are also unrevealed so loop exited
-            game.frontier.append(currentCell)
+        continue  # no need to check if cell is still in frontier because it is known that it isn't
+    # this will trigger from the raise in the if statement and break out of everything inside
+    try:
+        # for any neighbor of currentCell
+        for neighbor in currentCell.neighbors(1, game._width, game._height):
+            # if that cell is an unexplored cell
+            if game.recallCellID(neighbor) == "cell.png":
+                # then currentCell is still part of the frontier
+                # Also don't need to check any other neighbors to see if they are also unrevealed so loop exited
+                game.frontier.append(currentCell)
+                # this is so it so inner for loop only adds back cell if it needs to be added but doesn't add it more than once
+                raise ContinueOuterLoop
+    except ContinueOuterLoop:
+        pass
 
     # this tests how frontier changes
     # print("Frontier len: " + str(len(game.frontier)))
