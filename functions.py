@@ -113,7 +113,7 @@ class Game:
         pos = self.convertCordToPos(cord)
         # testing
         # TODO remove this next line
-        pyautogui.moveTo(pos[0],pos[1])
+        # pyautogui.moveTo(pos[0],pos[1])
         for i, cellTypeIm in enumerate(self.cellTypeIms):
             if pyautogui.locate(cellTypeIm, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight), grayscale=True) != None:
                 return self.cellTypes[i]
