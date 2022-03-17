@@ -95,14 +95,14 @@ class Game:
                 height = i+1
         return int(width), int(height), int(cellwidth), int(cellheight), origin, end, grid
 
-    # iterates through all possible images to see if one matches
-    # if the image matches the if statement will be true and the image's string will be returned
-    def identifyCell(self, cord):
-        pos = self.convertCordToPos(cord)
-        for possibleCell in self.possibleCells:
-            if pyautogui.locateOnScreen(possibleCell, region=(pos[0], pos[1], self._cellwidth, self._cellheight)) != None:
-                return possibleCell
-        return None
+    # # iterates through all possible images to see if one matches
+    # # if the image matches the if statement will be true and the image's string will be returned
+    # def identifyCell(self, cord):
+    #     pos = self.convertCordToPos(cord)
+    #     for possibleCell in self.possibleCells:
+    #         if pyautogui.locateOnScreen(possibleCell, region=(pos[0], pos[1], self._cellwidth, self._cellheight)) != None:
+    #             return possibleCell
+    #     return None
 
     # identify again but this time using a screenshot passed in instead for speed
     def identifyCell2(self, cord):
