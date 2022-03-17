@@ -107,7 +107,7 @@ class Game:
     # identify again but this time using a screenshot passed in instead for speed
     def identifyCell2(self, cord):
         # only unchecked cells can update so don't bother checking if it wasn't an unchecked cell last time it was updated
-        temp = self.IDLst[self.convertCordToOffset(cord)]
+        temp = self.recallCellID(cord)
         if temp != "cell.png":
             return temp
         pos = self.convertCordToPos(cord)
@@ -122,6 +122,10 @@ class Game:
     # returns cached value for cell for faster ID time
     def recallCellID(self, cord):
         return self.IDLst[self.convertCordToOffset(cord)]
+
+    # sets cached value for cell for better readability
+    def setCellID(self, cord, ID):
+        self.IDLst[self.convertCordToOffset(cord)] = ID
 
     # convert grid cordinate to pixel position
     def convertCordToPos(self, cord):
@@ -200,12 +204,12 @@ class Game:
     # else: do nothing since the cell is as expected from its ID in the IDLst
     def updateIDLst(self, cord):
         # only unchecked cells can update so don't bother checking if it wasn't an unchecked cell last time it was updated
-        temp = self.IDLst[self.convertCordToOffset(cord)]
+        temp = self.recallCellID(cord)
         if temp != "cell.png":
             return
         cell = Cell(cord, self.identifyCell2(cord))
         # if cell ID is different from recorded for that cell
-        if cell.ID != self.IDLst[self.convertCordToOffset(cord)]:
+        if cell.ID != temp:
             # update ID record for that cell
             self.IDLst[self.convertCordToOffset(cell.cord)] = cell.ID
             if cell.ID == "complete.png":
@@ -233,7 +237,7 @@ class Game:
     # Flag tile at cord then update cell Id at location to flag
     def flag(self, cord):
         self.clickR(cord)
-        self.IDLst[self.convertCordToOffset(cord)] = "flag.png"
+        self.setCellID(cord, "flag.png")
 
     # Logical Rule 1: If the number of unrevealed cells is equal to the number of bombs left around the cell then the unrevealed cells are bombs
     def rule1(self, cell):

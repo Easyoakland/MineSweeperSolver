@@ -3,14 +3,20 @@ from functions import *
 import pyautogui
 import cv2
 
-# rename cellTypes to cellTypes
-
-# TODO make sure identify is only called where recallCellID would be insufficient
+# TODO make setRecallCellID function for readability
 
 # TODO logic
-# 3. Implement linked cells (1 bomb among group of cells)
-# if two linked cells overlap completely then the un-overlapped part is safe
+# 3. Implement linked cells
+# Pop frontier cell and generate linked set from it. Don't add the cell back because all that matters is set collisions, mines in a set = len(set), and set.bombNum=0
+# use sets to save all linked sets and set methods to compare with other sets
+# If number of sets with no match = number of sets, a guess must be made
+# If two linked sets with the same location exist, delete one of the duplicates. If they have different bomb nums but the same area return error
+# If a set has less than 0 bombs return error
 # 4. Probability?
+# Naive probability is set.bombNum/len(set)
+## Either pick put a flag in a set where it is most likely there is a bomb (high prob num) or reveal a tile from a set that is most likely to be empty tile (low prob num)
+# Guess where there are more intersecting sets because that will give the most information after guessing
+# 
 
 # remove artificial pausing. use ctrl-alt-delete or alt-tab and ctrl-c if needed to abort program
 pyautogui.PAUSE = 0
@@ -28,10 +34,6 @@ for possibleCell in game.cellTypes:
 
 game.cellTypesDict = {"1.png": 1, "2.png": 2, "3.png": 3,
                       "4.png": 4, "5.png": 5, "6.png": 6, "7.png": 7, "8.png": 8, "flag.png": 9, "cell.png": 10, "complete.png": 11}
-
-# This is too slow to run every logical cycle:
-# make list of IDs for all cells
-# IDLst = [game.identifyCellAtPos(pos) for i, pos in enumerate(game._grid)]
 
 # pre-fill IDLst
 game.IDLst = ["cell.png" for i in range(game._width*game._height)]
