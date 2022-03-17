@@ -5,7 +5,7 @@ import cv2
 
 # rename cellTypes to cellTypes
 
-# TODO check why it gets stuck in an infinite loop
+# TODO make sure identify is only called where recallCellID would be insufficient
 
 # TODO logic
 # 3. Implement linked cells (1 bomb among group of cells)
