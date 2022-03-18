@@ -101,6 +101,8 @@ while (len(game.frontier) != 0 or len(linkedCellsLst) != 0):
             new_linkedCellsLst = [item for item in new_linkedCellsLst if item != 0]
             # remove subset-superset overlaps
             game.removeCompleteOverlaps(new_linkedCellsLst)
+            # removes any newly created empty lists
+            new_linkedCellsLst = [item for j,item in enumerate(new_linkedCellsLst) if len(new_linkedCellsLst[j].linkedCellsOffsets) != 0]
             linkedCellsLst = new_linkedCellsLst.copy()  # replace old lst with new one
             newLength = len(linkedCellsLst)  # get new length
         # nothing left to do if frontier wasn't added to after processing backlog
