@@ -95,35 +95,6 @@ while (len(game.frontier) != 0 or len(linkedCellsLst) != 0):
         if len(game.frontier) == 0: # nothing left to do if frontier wasn't added to after processing backlog
             break
 
-
-    # # run rule 1 and 2 and if both didn't do anything somethingHappened=False
-    # somethingHappened = game.rule1(currentCell) or game.rule2(currentCell)
-    # # if an action was performed reset loop countdown to forceful termination
-    # # this try loop will abort the inner for loop if currentCell is determined to still be part of the frontier
-    # if somethingHappened:
-    #     i = 0
-    #     continue  # no need to check if cell is still in frontier because it is known that it isn't
-    # # this will trigger from the raise in the if statement and break out of everything inside
-    # try:
-    #     # for any neighbor of currentCell
-    #     for neighbor in currentCell.neighbors(1, game._width, game._height):
-    #         # if that cell is an unexplored cell
-    #         if game.recallCellID(neighbor) == "cell.png":
-    #             # then currentCell is still part of the frontier
-    #             # Also don't need to check any other neighbors to see if they are also unrevealed so loop exited
-    #             game.frontier.append(currentCell)
-    #             # this is so it so inner for loop only adds back cell if it needs to be added but doesn't add it more than once
-    #             raise ContinueOuterLoop
-    # except ContinueOuterLoop:
-    #     #TODO remove next line it is just debugging
-    #     print("End Frontier len: " + str(len(game.frontier)))
-    #     continue
-    # #TODO remove next line it is just debugging
-    # print("End Frontier len: " + str(len(game.frontier)))
-
-#TODO remove next line it is just debugging
-# print("End Frontier len: " + str(len(game.frontier)))
-
 # guess was required if the loop stopped but there victory isn't displayed
 a = pyautogui.locateOnScreen("victory.png")
 if a == None:
