@@ -5,7 +5,7 @@ import cv2
 from copy import deepcopy
 
 # TODO sometimes identifies cell as having a bomb on it
-# TODO edges are being handled weird and something is wrong
+# TODO right edge is being handled weird and something is wrong
 # TODO when it wins it gives an index error after guessing instead of realizing it won
 
 # TODO logic
