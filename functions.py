@@ -335,9 +335,9 @@ class Game:
                 # set to see if it is a superset
                 set2 = new_linkedCellsLst[j].linkedCellsOffsets
                 if set1.issubset(set2) and (i != j):  # if it is an actual subset
-                    if len(set1 & set2) == len(set2):
-                        # TODO REMOVE LINE ABOVE AND BELOW
-                        print("WARNING: set1: " + str(set1) + " and set 2: " + str(set2) + " are the same")
+                    # if len(set1 & set2) == len(set2):
+                    #     # TODO REMOVE LINE ABOVE AND BELOW
+                    #     print("WARNING: set1: " + str(set1) + " and set 2: " + str(set2) + " are the same")
                     # # TODO REMOVE NEXT LINE
                     # print("removed subset: " + str(set1) +
                     #       " from superset: " + str(set2))
