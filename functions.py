@@ -236,6 +236,10 @@ class Game:
 
     # Flag tile at cord then update cell Id at location to flag
     def flag(self, cord):
+        if self.recallCellID(cord) != "cell.png": # don't do anything if the cell isn't flaggable
+            # TODO REMOVE THIS
+            print("tried flagging a non flaggable at:" + str(cord))
+            return
         self.clickR(cord)
         self.setCellID(cord, "flag.png")
 
@@ -279,6 +283,47 @@ class Game:
                     somethingHappened = True  # this did something so return true
         return somethingHappened
 
+    # rule 1 implemented with sets. if the amount of bombs in a set is the same as the amount of cells in a set, they are all bombs
+    def linkedCellsRule1(self, linkedCells):
+        # if the number of bombs in the set is the same as the size of the set
+        if linkedCells.bombNum == len(linkedCells.linkedCellsOffsets):
+            # flag all cells in set
+            for offset in linkedCells.linkedCellsOffsets:
+                self.flag(self.convertOffsetToCord(offset))
+            return True # rule activated
+        else:
+            return False # rule didn't activate
+
+    # rule 2 implemented with sets. if the linkedCells has no bombs all cells in the set are safe
+    def linkedCellsRule2(self, linkedCells):
+        # if set of cells has no bomb
+        if linkedCells.bombNum == 0:
+            # reveal all cells in the set
+            for offset in linkedCells.linkedCellsOffsets:
+                self.reveal(self.convertOffsetToCord(offset))
+            return True # this rule activated
+        else:
+            return False # didn't activate
+
+    # generates a set for a given cell
+    def generateLinkedCells(self, cell):
+        setLoc = set() # make a set for all locations given as an offset
+        flagCnt = 0
+        # for every neighbor of the given cell
+        for neighbor in cell.neighbors(1, self._width, self._height):
+            # if the neighbor is uncovered
+            tempID = self.recallCellID(neighbor)
+            if tempID == "cell.png":
+                setLoc.add(self.convertCordToOffset(neighbor)) # add the offset to the set
+            elif tempID == "flag.png": # if it is a flag
+                flagCnt +=1 # add to the count for how many flags there are around this cell
+        # if set is empty don't return anything because there is no valid linkedCells
+        if len(setLoc) == 0:
+            return None
+        # the amount of bombs in the linkedCells is the amount there are around the cell minus how many have already been identified
+        bombNum = self.cellTypesDict[cell.ID] - flagCnt
+        return linkedCells(setLoc, bombNum)
+
 
 # Handles an individual cell on the board
 class Cell:
@@ -312,3 +357,8 @@ class Cell:
             i += 1
         # returns neighbors list
         return neighbors
+
+class linkedCells:
+    def __init__(self, linkedCellsOffsets, bombNum):
+        self.linkedCellsOffsets = linkedCellsOffsets
+        self.bombNum = bombNum

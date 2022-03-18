@@ -2,6 +2,7 @@ import init
 from functions import *
 import pyautogui
 import cv2
+from copy import deepcopy
 
 # TODO make setRecallCellID function for readability
 
@@ -14,9 +15,8 @@ import cv2
 # If a set has less than 0 bombs return error
 # 4. Probability?
 # Naive probability is set.bombNum/len(set)
-## Either pick put a flag in a set where it is most likely there is a bomb (high prob num) or reveal a tile from a set that is most likely to be empty tile (low prob num)
+# Either pick put a flag in a set where it is most likely there is a bomb (high prob num) or reveal a tile from a set that is most likely to be empty tile (low prob num)
 # Guess where there are more intersecting sets because that will give the most information after guessing
-# 
 
 # remove artificial pausing. use ctrl-alt-delete or alt-tab and ctrl-c if needed to abort program
 pyautogui.PAUSE = 0
@@ -41,36 +41,99 @@ game.IDLst = ["cell.png" for i in range(game._width*game._height)]
 center = (int(game._width/2), int(game._height/2))
 game.reveal(center)
 
+# TODO REMOVE NEXT LINE
 i = 0
-# game.frontier evaluates to true while frontier has an element
-# the second element will evaluate to false if the iterator goes larger than frontier
+setOfLinkedCells = set() # saving all linked cells in a set so they aren't duplicated when added
+# this loop ends if frontier is empty or if countdown is reached
+# the second element will evaluate to false if the iterator goes larger than frontier twice
 # the iterator is being used as a countdown to forcefully terminating loop
-while game.frontier and i < 2*len(game.frontier):
-    i += 1
-    currentCell = game.frontier.pop(0)  # pop off first element
-    # run rule 1 and 2 and if both didn't do anything somethingHappened=False
-    somethingHappened = game.rule1(currentCell) or game.rule2(currentCell)
-    # if an action was performed reset loop countdown to forceful termination
-    # this try loop will abort the inner for loop if currentCell is determined to still be part of the frontier
-    if somethingHappened:
-        i = 0
-        continue  # no need to check if cell is still in frontier because it is known that it isn't
-    # this will trigger from the raise in the if statement and break out of everything inside
-    try:
-        # for any neighbor of currentCell
-        for neighbor in currentCell.neighbors(1, game._width, game._height):
-            # if that cell is an unexplored cell
-            if game.recallCellID(neighbor) == "cell.png":
-                # then currentCell is still part of the frontier
-                # Also don't need to check any other neighbors to see if they are also unrevealed so loop exited
-                game.frontier.append(currentCell)
-                # this is so it so inner for loop only adds back cell if it needs to be added but doesn't add it more than once
-                raise ContinueOuterLoop
-    except ContinueOuterLoop:
-        pass
+while (len(game.frontier) != 0 or len(setOfLinkedCells) != 0):
+    #TODO remove next line it is just debugging
+    print("Start Frontier len: " + str(len(game.frontier)) + " Also, len(setOfLinkedCells) is: " + str(len(setOfLinkedCells)))
+    if len(game.frontier) !=0:
+        currentCell = game.frontier.pop(0)  # pop off first element
+        linkedCells = game.generateLinkedCells(currentCell)
+        if linkedCells != None: # if there was a linkedCells
+            if game.linkedCellsRule1(linkedCells):
+                continue # the rest of the loop is unnecessary
+            elif game.linkedCellsRule2(linkedCells):
+                continue # the rest of the loop is unnecessary
+            else:
+                setOfLinkedCells.add(linkedCells) # add it to the set of linked cells
+                continue # no need to check stored cells while there are more frontier cells to check
+    elif len(setOfLinkedCells) == 0: # if this is also zero there is nothing left to do
+        break
+    elif len(setOfLinkedCells) > 0:
+        oldLength = 1
+        newLength = 0
+        # check to see if a previous linkedCells became solvable
+        while oldLength>newLength:
+            new_setOfLinkedCells = setOfLinkedCells.copy() # make new set to copy results into
+            oldLength = len(setOfLinkedCells) # save current length for comparison at end of loop
+            # simplify any linkedCell that can be simplified
+            for linkedCells in setOfLinkedCells:
+                # TODO discard using new_linkedCells doesn't work because they have different id
+                new_linkedCells = deepcopy(linkedCells)
+                # check to see if the linked cells now contain a flag or already checked cell
+                for offset in linkedCells.linkedCellsOffsets:
+                    tempID = game.recallCellID(game.convertOffsetToCord(offset))
+                    if  tempID == "flag.png": # if the linked cells now contain a flag
+                        new_linkedCells.linkedCellsOffsets.discard(offset) # remove the flag from the linkedCells
+                        new_linkedCells.bombNum -=1 # and decrease the amount of bombs left
+                    elif tempID != "cell.png": # if the linkedCells now contain an explored cell
+                        # print("Detected explored in linkedCell at:"+ str(game.convertOffsetToCord(offset)))
+                        new_linkedCells.linkedCellsOffsets.discard(offset) # remove that tile as it obviously can't be one of the bombs anymore
+                    # below shouldn't be true ever
+                    if new_linkedCells.bombNum > len(new_linkedCells.linkedCellsOffsets):
+                        print("ERROR " + str(new_linkedCells) + "has more bombs than cells to fill")
+                # Check if logical operation can be done
+                if game.linkedCellsRule1(new_linkedCells):
+                    # TODO discard won't work because the memory addresses won't be the same
+                    new_setOfLinkedCells.discard(new_linkedCells) # instance of linkedCells is solved and no longer needed
+                    # continue # something was done so the other operations are unnecessary
+                elif game.linkedCellsRule2(new_linkedCells):
+                    # TODO discard won't work because the memory addresses won't be the same
+                    new_setOfLinkedCells.discard(new_linkedCells) # instance of linkedCells is solved and no longer needed
+                    # continue # something was done so now must recheck other linkCells to see if they are now solvable
+                # else: # if neither operation was able to occur, add the linkedCell back to the backlog
+                    # TODO DELETE NEXT LINE
+                    # new_setOfLinkedCells.add(new_linkedCells) # add new linkedCell to copy
+                    # TODO REMOVE NEXT 2 LINES
+                    # print("Called: " + str(i) +" times. Also, len(setOfLinkedCells) is: " + str(len(setOfLinkedCells)))
+                    # i += 1
+            setOfLinkedCells = new_setOfLinkedCells.copy() # replace old set with new one
+            newLength = len(setOfLinkedCells) # get new length
+        if len(game.frontier) == 0: # nothing left to do if frontier wasn't added to after processing backlog
+            break
 
-    # this tests how frontier changes
-    # print("Frontier len: " + str(len(game.frontier)))
+
+    # # run rule 1 and 2 and if both didn't do anything somethingHappened=False
+    # somethingHappened = game.rule1(currentCell) or game.rule2(currentCell)
+    # # if an action was performed reset loop countdown to forceful termination
+    # # this try loop will abort the inner for loop if currentCell is determined to still be part of the frontier
+    # if somethingHappened:
+    #     i = 0
+    #     continue  # no need to check if cell is still in frontier because it is known that it isn't
+    # # this will trigger from the raise in the if statement and break out of everything inside
+    # try:
+    #     # for any neighbor of currentCell
+    #     for neighbor in currentCell.neighbors(1, game._width, game._height):
+    #         # if that cell is an unexplored cell
+    #         if game.recallCellID(neighbor) == "cell.png":
+    #             # then currentCell is still part of the frontier
+    #             # Also don't need to check any other neighbors to see if they are also unrevealed so loop exited
+    #             game.frontier.append(currentCell)
+    #             # this is so it so inner for loop only adds back cell if it needs to be added but doesn't add it more than once
+    #             raise ContinueOuterLoop
+    # except ContinueOuterLoop:
+    #     #TODO remove next line it is just debugging
+    #     print("End Frontier len: " + str(len(game.frontier)))
+    #     continue
+    # #TODO remove next line it is just debugging
+    # print("End Frontier len: " + str(len(game.frontier)))
+
+#TODO remove next line it is just debugging
+# print("End Frontier len: " + str(len(game.frontier)))
 
 # guess was required if the loop stopped but there victory isn't displayed
 a = pyautogui.locateOnScreen("victory.png")
