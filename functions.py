@@ -236,7 +236,8 @@ class Game:
 
     # Flag tile at cord then update cell Id at location to flag
     def flag(self, cord):
-        if self.recallCellID(cord) != "cell.png": # don't do anything if the cell isn't flaggable
+        # don't do anything if the cell isn't flaggable
+        if self.recallCellID(cord) != "cell.png":
             # TODO REMOVE THIS
             print("tried flagging a non flaggable at:" + str(cord))
             return
@@ -290,9 +291,9 @@ class Game:
             # flag all cells in set
             for offset in linkedCells.linkedCellsOffsets:
                 self.flag(self.convertOffsetToCord(offset))
-            return True # rule activated
+            return True  # rule activated
         else:
-            return False # rule didn't activate
+            return False  # rule didn't activate
 
     # rule 2 implemented with sets. if the linkedCells has no bombs all cells in the set are safe
     def linkedCellsRule2(self, linkedCells):
@@ -301,28 +302,49 @@ class Game:
             # reveal all cells in the set
             for offset in linkedCells.linkedCellsOffsets:
                 self.reveal(self.convertOffsetToCord(offset))
-            return True # this rule activated
+            return True  # this rule activated
         else:
-            return False # didn't activate
+            return False  # didn't activate
 
     # generates a set for a given cell
     def generateLinkedCells(self, cell):
-        setLoc = set() # make a set for all locations given as an offset
+        setLoc = set()  # make a set for all locations given as an offset
         flagCnt = 0
         # for every neighbor of the given cell
         for neighbor in cell.neighbors(1, self._width, self._height):
             # if the neighbor is uncovered
             tempID = self.recallCellID(neighbor)
             if tempID == "cell.png":
-                setLoc.add(self.convertCordToOffset(neighbor)) # add the offset to the set
-            elif tempID == "flag.png": # if it is a flag
-                flagCnt +=1 # add to the count for how many flags there are around this cell
+                # add the offset to the set
+                setLoc.add(self.convertCordToOffset(neighbor))
+            elif tempID == "flag.png":  # if it is a flag
+                flagCnt += 1  # add to the count for how many flags there are around this cell
         # if set is empty don't return anything because there is no valid linkedCells
         if len(setLoc) == 0:
             return None
         # the amount of bombs in the linkedCells is the amount there are around the cell minus how many have already been identified
         bombNum = self.cellTypesDict[cell.ID] - flagCnt
         return linkedCells(setLoc, bombNum)
+
+    # takes a list of linkedCells and separates any subsets from supersets
+    def removeCompleteOverlaps(self, new_linkedCellsLst):
+        for i in range(len(new_linkedCellsLst)):
+            # set to see if it is a subset
+            set1 = new_linkedCellsLst[i].linkedCellsOffsets.copy()
+            for j in range(len(new_linkedCellsLst)):
+                # set to see if it is a superset
+                set2 = new_linkedCellsLst[j].linkedCellsOffsets
+                if set1.issubset(set2) and (i != j):  # if it is an actual subset
+                    # TODO REMOVE NEXT LINE
+                    print("removed subset: " + str(set1) +
+                          " from superset: " + str(set2))
+                    # remove items that are shared
+                    set2.difference_update(set1)
+                    # TODO REMOVE NEXT LINE
+                    print("Results in removed subset: " +
+                          str(set1) + " from superset: " + str(set2))
+                    # and decrease the bomb count of the superset by the subset
+                    new_linkedCellsLst[j].bombNum = new_linkedCellsLst[j].bombNum - new_linkedCellsLst[i].bombNum
 
 
 # Handles an individual cell on the board
@@ -357,6 +379,7 @@ class Cell:
             i += 1
         # returns neighbors list
         return neighbors
+
 
 class linkedCells:
     def __init__(self, linkedCellsOffsets, bombNum):

@@ -4,11 +4,10 @@ import pyautogui
 import cv2
 from copy import deepcopy
 
-# TODO make setRecallCellID function for readability
+# TODO sometimes identifies cell as having a bomb on it
 
 # TODO logic
 # 3. Implement linked cells
-# Pop frontier cell and generate linked set from it. Don't add the cell back because all that matters is set collisions, mines in a set = len(set), and set.bombNum=0
 # use sets to save all linked sets and set methods to compare with other sets
 # If number of sets with no match = number of sets, a guess must be made
 # If two linked sets with the same location exist, delete one of the duplicates. If they have different bomb nums but the same area return error
@@ -39,17 +38,15 @@ game.cellTypesDict = {"1.png": 1, "2.png": 2, "3.png": 3,
 game.IDLst = ["cell.png" for i in range(game._width*game._height)]
 
 center = (int(game._width/2), int(game._height/2))
-game.reveal(center)
+game.reveal((1,1))
 
-# TODO REMOVE NEXT LINE
-i = 0
-setOfLinkedCells = set() # saving all linked cells in a set so they aren't duplicated when added
+linkedCellsLst = [] # saving all linked cells in a set so they aren't duplicated when added
 # this loop ends if frontier is empty or if countdown is reached
 # the second element will evaluate to false if the iterator goes larger than frontier twice
 # the iterator is being used as a countdown to forcefully terminating loop
-while (len(game.frontier) != 0 or len(setOfLinkedCells) != 0):
+while (len(game.frontier) != 0 or len(linkedCellsLst) != 0):
     #TODO remove next line it is just debugging
-    print("Start Frontier len: " + str(len(game.frontier)) + " Also, len(setOfLinkedCells) is: " + str(len(setOfLinkedCells)))
+    # print("Start Frontier len: " + str(len(game.frontier)) + " Also, len(linkedCellsLst) is: " + str(len(linkedCellsLst)))
     if len(game.frontier) !=0:
         currentCell = game.frontier.pop(0)  # pop off first element
         linkedCells = game.generateLinkedCells(currentCell)
@@ -59,19 +56,19 @@ while (len(game.frontier) != 0 or len(setOfLinkedCells) != 0):
             elif game.linkedCellsRule2(linkedCells):
                 continue # the rest of the loop is unnecessary
             else:
-                setOfLinkedCells.add(linkedCells) # add it to the set of linked cells
+                linkedCellsLst.append(linkedCells) # add it to the list of linked cells
                 continue # no need to check stored cells while there are more frontier cells to check
-    elif len(setOfLinkedCells) == 0: # if this is also zero there is nothing left to do
+    elif len(linkedCellsLst) == 0: # if this is also zero there is nothing left to do
         break
-    elif len(setOfLinkedCells) > 0:
+    elif len(linkedCellsLst) > 0:
         oldLength = 1
         newLength = 0
         # check to see if a previous linkedCells became solvable
         while oldLength>newLength:
-            new_setOfLinkedCells = setOfLinkedCells.copy() # make new set to copy results into
-            oldLength = len(setOfLinkedCells) # save current length for comparison at end of loop
+            new_linkedCellsLst = linkedCellsLst.copy() # make new list to copy results into
+            oldLength = len(linkedCellsLst) # save current length for comparison at end of loop
             # simplify any linkedCell that can be simplified
-            for linkedCells in setOfLinkedCells:
+            for i,linkedCells in enumerate(linkedCellsLst):
                 # TODO discard using new_linkedCells doesn't work because they have different id
                 new_linkedCells = deepcopy(linkedCells)
                 # check to see if the linked cells now contain a flag or already checked cell
@@ -88,21 +85,13 @@ while (len(game.frontier) != 0 or len(setOfLinkedCells) != 0):
                         print("ERROR " + str(new_linkedCells) + "has more bombs than cells to fill")
                 # Check if logical operation can be done
                 if game.linkedCellsRule1(new_linkedCells):
-                    # TODO discard won't work because the memory addresses won't be the same
-                    new_setOfLinkedCells.discard(new_linkedCells) # instance of linkedCells is solved and no longer needed
-                    # continue # something was done so the other operations are unnecessary
+                    new_linkedCellsLst[i] = 0 # instance of linkedCells is solved and no longer needed
                 elif game.linkedCellsRule2(new_linkedCells):
-                    # TODO discard won't work because the memory addresses won't be the same
-                    new_setOfLinkedCells.discard(new_linkedCells) # instance of linkedCells is solved and no longer needed
-                    # continue # something was done so now must recheck other linkCells to see if they are now solvable
-                # else: # if neither operation was able to occur, add the linkedCell back to the backlog
-                    # TODO DELETE NEXT LINE
-                    # new_setOfLinkedCells.add(new_linkedCells) # add new linkedCell to copy
-                    # TODO REMOVE NEXT 2 LINES
-                    # print("Called: " + str(i) +" times. Also, len(setOfLinkedCells) is: " + str(len(setOfLinkedCells)))
-                    # i += 1
-            setOfLinkedCells = new_setOfLinkedCells.copy() # replace old set with new one
-            newLength = len(setOfLinkedCells) # get new length
+                    new_linkedCellsLst[i] = 0 # instance of linkedCells is solved and no longer needed
+            new_linkedCellsLst = [item for item in new_linkedCellsLst if item != 0] # remove added 0's
+            game.removeCompleteOverlaps(new_linkedCellsLst) # remove subset-superset overlaps
+            linkedCellsLst = new_linkedCellsLst.copy() # replace old lst with new one
+            newLength = len(linkedCellsLst) # get new length
         if len(game.frontier) == 0: # nothing left to do if frontier wasn't added to after processing backlog
             break
 
