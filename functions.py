@@ -367,7 +367,7 @@ class Game:
         if maxSoFar[0] <= 1-minSoFar[0]: # if more certain about where a bomb isn't than where it is
             self.reveal(self.convertOffsetToCord(list(linkedCellsLst[minSoFar[1]].linkedCellsOffsets)[0])) # then reveal a spot in the linkedCells with lowest odds of bomb
         elif maxSoFar[0] > 1-minSoFar[0]: # if more certain about where a bomb is than where it isn't
-            self.flag(self.convertOffsetToCord(list(linkedCellLst[maxSoFar[1]](linkedCellsOffsets))[0])) # then flag a spot in the linkedCells with the greatest chance of bomb
+            self.flag(self.convertOffsetToCord(list(linkedCellsLst[maxSoFar[1]](linkedCellsOffsets))[0])) # then flag a spot in the linkedCells with the greatest chance of bomb
 
 
 
