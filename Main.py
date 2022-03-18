@@ -6,6 +6,7 @@ from copy import deepcopy
 
 # TODO sometimes identifies cell as having a bomb on it
 # TODO right edge is being handled weird and something is wrong
+# on expert mode it always seems to flag the furthest right column from row 4-6
 # TODO when it wins it gives an index error after guessing instead of realizing it won
 
 # TODO logic
