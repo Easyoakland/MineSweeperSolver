@@ -6,7 +6,7 @@ from copy import deepcopy
 
 # TODO sometimes identifies cell as having a bomb on it
 # TODO edges are being handled weird and something is wrong
-# TODO some cells that are now numbers should be removed from linkedCells but isnt
+# TODO when it wins it gives an index error after guessing instead of realizing it won
 
 # TODO logic
 # 3.5. Implement linked cells
