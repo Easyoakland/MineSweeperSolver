@@ -335,14 +335,14 @@ class Game:
                 # set to see if it is a superset
                 set2 = new_linkedCellsLst[j].linkedCellsOffsets
                 if set1.issubset(set2) and (i != j):  # if it is an actual subset
-                    # TODO REMOVE NEXT LINE
-                    print("removed subset: " + str(set1) +
-                          " from superset: " + str(set2))
+                    # # TODO REMOVE NEXT LINE
+                    # print("removed subset: " + str(set1) +
+                    #       " from superset: " + str(set2))
                     # remove items that are shared
                     set2.difference_update(set1)
-                    # TODO REMOVE NEXT LINE
-                    print("Results in removed subset: " +
-                          str(set1) + " from superset: " + str(set2))
+                    # # TODO REMOVE NEXT LINE
+                    # print("Results in removed subset: " +
+                    #       str(set1) + " from superset: " + str(set2))
                     # and decrease the bomb count of the superset by the subset
                     new_linkedCellsLst[j].bombNum = new_linkedCellsLst[j].bombNum - new_linkedCellsLst[i].bombNum
 

@@ -38,7 +38,7 @@ game.cellTypesDict = {"1.png": 1, "2.png": 2, "3.png": 3,
 game.IDLst = ["cell.png" for i in range(game._width*game._height)]
 
 center = (int(game._width/2), int(game._height/2))
-game.reveal((1,1))
+game.reveal((center))
 
 linkedCellsLst = [] # saving all linked cells in a set so they aren't duplicated when added
 # this loop ends if frontier is empty or if countdown is reached
