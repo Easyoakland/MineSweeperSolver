@@ -335,6 +335,9 @@ class Game:
                 # set to see if it is a superset
                 set2 = new_linkedCellsLst[j].linkedCellsOffsets
                 if set1.issubset(set2) and (i != j):  # if it is an actual subset
+                    if len(set1 & set2) == len(set2):
+                        # TODO REMOVE LINE ABOVE AND BELOW
+                        print("WARNING: set1: " + str(set1) + " and set 2: " + str(set2) + " are the same")
                     # # TODO REMOVE NEXT LINE
                     # print("removed subset: " + str(set1) +
                     #       " from superset: " + str(set2))
@@ -345,6 +348,27 @@ class Game:
                     #       str(set1) + " from superset: " + str(set2))
                     # and decrease the bomb count of the superset by the subset
                     new_linkedCellsLst[j].bombNum = new_linkedCellsLst[j].bombNum - new_linkedCellsLst[i].bombNum
+
+    # finds probability that there is a bomb in target spot
+    def probabilityOfBomb(self,linkedCells):
+        return linkedCells.bombNum/len(linkedCells.linkedCellsOffsets)
+
+    # Guess at best guess position
+    # TODO make this take into account the amount of overlapped sets for breaking ties
+    def guess(self, linkedCellsLst):
+        maxSoFar = [0,0]
+        minSoFar = [101,0]
+        for i,linkedCells in enumerate(linkedCellsLst):
+            tempProbability = self.probabilityOfBomb(linkedCells) # probability is a number from 0 to 1 here
+            if maxSoFar[0] < tempProbability:
+                maxSoFar = [tempProbability, i]
+            if minSoFar[0] > tempProbability:
+                minSoFar = [tempProbability, i]
+        if maxSoFar[0] <= 1-minSoFar[0]: # if more certain about where a bomb isn't than where it is
+            self.reveal(self.convertOffsetToCord(list(linkedCellsLst[minSoFar[1]].linkedCellsOffsets)[0])) # then reveal a spot in the linkedCells with lowest odds of bomb
+        elif maxSoFar[0] > 1-minSoFar[0]: # if more certain about where a bomb is than where it isn't
+            self.flag(self.convertOffsetToCord(list(linkedCellLst[maxSoFar[1]](linkedCellsOffsets))[0])) # then flag a spot in the linkedCells with the greatest chance of bomb
+
 
 
 # Handles an individual cell on the board
