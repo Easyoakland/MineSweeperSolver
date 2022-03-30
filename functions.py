@@ -1,14 +1,4 @@
 import pyautogui
-from time import sleep
-# click top left cell
-# pyautogui.click(grid[0])
-
-# click top right cell
-# pyautogui.click(grid[width-1])
-
-# click second row on the right
-# pyautogui.click(grid[(2*width)-1])
-
 
 # This exists so the exception can be called to break to outer loop
 # used by putting inner loop in a
@@ -228,8 +218,7 @@ class Game:
     def reveal(self, cord):
         self.click(cord)
         a = "cell.png"
-        while a == "cell.png":
-            sleep(0.05)
+        while a == "cell.png": # this will keep looking for a change until one occurs
             self.setBoardScreenshot()
             a = self.identifyCell2(cord)
         self.updateIDLst(cord)
