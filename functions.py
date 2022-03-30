@@ -141,7 +141,7 @@ class Game:
     # convert offset to cord
     def convertOffsetToCord(self, Offset):
         cnt = 0
-        while Offset > self._width:
+        while Offset >= self._width:
             Offset = Offset-self._width
             cnt += 1
         y = cnt
