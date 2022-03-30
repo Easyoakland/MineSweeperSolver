@@ -101,9 +101,7 @@ class Game:
         if temp != "cell.png":
             return temp
         pos = self.convertCordToPos(cord)
-        # testing
-        # TODO remove this next line
-        # pyautogui.moveTo(pos[0],pos[1])
+        # return the first tiletype that matches the tile at the given cordinate
         for i, cellTypeIm in enumerate(self.cellTypeIms):
             if pyautogui.locate(cellTypeIm, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight), grayscale=True) != None:
                 return self.cellTypes[i]
@@ -344,6 +342,7 @@ class Game:
 
     # Guess at best guess position
     # TODO make this take into account the amount of overlapped sets for breaking ties
+    # TODO take into account that the lowest probability on a cell is the cell's actual probability of bomb if that cell is part of multiple linked lists
     def guess(self, linkedCellsLst):
         maxSoFar = [0,0]
         minSoFar = [101,0]
