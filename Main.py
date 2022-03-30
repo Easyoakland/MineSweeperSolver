@@ -4,6 +4,8 @@ import pyautogui
 import cv2
 from copy import deepcopy
 
+# TODO guess occurs on empty lst (example is third failedgame state)
+
 # TODO sometimes identifies cell as having a bomb on it
 # TODO right edge is being handled weird and something is wrong
 # on expert mode it always seems to flag the furthest right column from row 4-6
