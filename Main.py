@@ -5,15 +5,14 @@ import cv2
 from copy import deepcopy
 
 # TODO guess occurs on empty lst (example is third failedgame state)
+# this gives an index error after guessing instead of realizing it won or lost
 
-# TODO sometimes identifies cell as having a bomb on it
-# TODO right edge is being handled weird and something is wrong
-# on expert mode it always seems to flag the furthest right column from row 4-6
-# TODO when it wins it gives an index error after guessing instead of realizing it won
+# TODO the ERROR at new_linkedCellsLst[i] has more bombs than cells to fill will occur when it sees an unknown tile because it will still remove it from the linkedLst if it is unkown
+# but if that tile is a bomb it will wind up removing too many and giving the error. Or if there is error in detection it will remove all cells of the linked list without removing the bombs
 
 # TODO logic
 # 3.5. Implement linked cells
-# partial overlap when overlap>= bombs in linkedCells
+# partial overlap when overlap or nonoverlap > bombs in linkedCells.
 # 4. Probability?
 # Either pick put a flag in a set where it is most likely there is a bomb (high prob num) or reveal a tile from a set that is most likely to be empty tile (low prob num)
 # Guess where there are more intersecting sets because that will give the most information after guessing
@@ -71,7 +70,6 @@ while (len(game.frontier) != 0 or len(linkedCellsLst) != 0):
             oldLength = len(linkedCellsLst)
             # simplify any linkedCell that can be simplified
             for i, linkedCells in enumerate(linkedCellsLst):
-                # TODO discard using new_linkedCells doesn't work because they have different id
                 new_linkedCells = deepcopy(linkedCells)
                 # check to see if the linked cells now contain a flag or already checked cell
                 for offset in linkedCells.linkedCellsOffsets:
@@ -83,7 +81,6 @@ while (len(game.frontier) != 0 or len(linkedCellsLst) != 0):
                     elif tempID != "cell.png":  # if the linkedCells now contain an explored cell
                         # print("Detected explored in linkedCell at:"+ str(game.convertOffsetToCord(offset)))
                         # remove that tile as it obviously can't be one of the bombs anymore
-                        # TODO not working randomly
                         new_linkedCells.linkedCellsOffsets.remove(offset)
                     # below shouldn't be true ever
                     if new_linkedCells.bombNum > len(new_linkedCells.linkedCellsOffsets):
@@ -109,7 +106,6 @@ while (len(game.frontier) != 0 or len(linkedCellsLst) != 0):
         # nothing left to do if frontier wasn't added to after processing backlog
         if len(game.frontier) == 0:
             # Guess is Required so here is guess
-            # TODO remove
             print("Guess was required")
             game.guess(linkedCellsLst)
 
