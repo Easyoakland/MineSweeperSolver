@@ -2,10 +2,8 @@ import init
 from functions import *
 import pyautogui
 import cv2
-from copy import deepcopy
 
-# TODO guess occurs on empty lst (example is third failedgame state)
-# this gives an index error after guessing instead of realizing it won or lost
+# TODO linkedlists with flags in them aren't getting updated
 
 # TODO the ERROR at new_linkedCellsLst[i] has more bombs than cells to fill will occur when it sees an unknown tile because it will still remove it from the linkedLst if it is unknown
 # but if that tile is a bomb it will wind up removing too many and giving the error. Or if there is error in detection it will remove all cells of the linked list without removing the bombs
@@ -55,74 +53,19 @@ game.IDLst = ["cell.png" for i in range(game._width*game._height)]
 center = (int(game._width/2), int(game._height/2))
 game.reveal((center))
 
-linkedCellsLst = []  # saving all linked cells in a set so they aren't duplicated when added
 # this loop ends if frontier is empty or if countdown is reached
 # the second element will evaluate to false if the iterator goes larger than frontier twice
 # the iterator is being used as a countdown to forcefully terminating loop
-while (len(game.frontier) != 0 or len(linkedCellsLst) != 0):
-    # if the frontier has an items to work on
-    if len(game.frontier) != 0:
-        currentCell = game.frontier.pop(0)  # pop off first element
-        linkedCells = game.generateLinkedCells(currentCell)
-        if linkedCells != None:  # if there was a linkedCells
-            if game.linkedCellsRule1(linkedCells): # if rule 1 was able to do something currentCell
-                continue  # the rest of the loop is unnecessary
-            elif game.linkedCellsRule2(linkedCells): # if rule 2 was able to do something to the currentCell
-                continue  # the rest of the loop is unnecessary
-            else: # if neither rule could do something to the currentCell
-                # add it to the list of linked cells
-                linkedCellsLst.append(linkedCells)
-                continue  # no need to check stored cells while there are more frontier cells to check
-    elif len(linkedCellsLst) == 0:  # if this is also zero there is nothing left to do
-        break
-    elif len(linkedCellsLst) > 0:
-        oldLength = 1
-        newLength = 0
-        # check to see if a previous linkedCells became solvable
-        while oldLength > newLength:
-            new_linkedCellsLst = linkedCellsLst.copy()  # make new list to copy results into
-            # save current length for comparison at end of loop
-            oldLength = len(linkedCellsLst)
-            # simplify any linkedCell that can be simplified
-            for i, linkedCells in enumerate(linkedCellsLst):
-                new_linkedCells = deepcopy(linkedCells)
-                # check to see if the linked cells now contain a flag or already checked cell
-                for offset in linkedCells.linkedCellsOffsets:
-                    tempID = game.recallCellID(game.convertOffsetToCord(offset))
-                    if tempID == "flag.png":  # if the linked cells now contain a flag
-                        new_linkedCells.linkedCellsOffsets.remove(
-                            offset)  # remove the flag from the linkedCells
-                        new_linkedCells.bombNum -= 1  # and decrease the amount of bombs left
-                    elif tempID != "cell.png":  # if the linkedCells now contain an explored cell
-                        # print("Detected explored in linkedCell at:"+ str(game.convertOffsetToCord(offset)))
-                        # remove that tile as it obviously can't be one of the bombs anymore
-                        new_linkedCells.linkedCellsOffsets.remove(offset)
-                    # below shouldn't be true ever
-                    if new_linkedCells.bombNum > len(new_linkedCells.linkedCellsOffsets):
-                        print(
-                            "ERROR at new_linkedCellsLst[" + str(i)+"] " + "has more bombs than cells to fill")
-                # Check if logical operation can be done
-                if game.linkedCellsRule1(new_linkedCells):
-                    # instance of linkedCells is solved and no longer needed
-                    new_linkedCellsLst[i] = 0 # replace with 0 so it is remembered but index is messed up
-                elif game.linkedCellsRule2(new_linkedCells):
-                    # instance of linkedCells is solved and no longer needed
-                    new_linkedCellsLst[i] = 0 # replace with 0 so it is remembered but index is messed up
-                else: # if no neither rule worked, still save any changed made to new_linkedCells
-                    new_linkedCellsLst[i] = new_linkedCells
-            # remove added 0's is safe now because i has reset so index's won't be out of sync
-            new_linkedCellsLst = [item for item in new_linkedCellsLst if item != 0]
-            # remove subset-superset overlaps
-            game.removeCompleteOverlaps(new_linkedCellsLst)
-            new_linkedCellsLst = [item for item in new_linkedCellsLst if item != 0] # remove what was flagged for removal now that looping isn't happening
-            linkedCellsLst = new_linkedCellsLst.copy()  # replace old lst with new one
-            newLength = len(linkedCellsLst)  # get new length
-        # nothing left to do if frontier wasn't added to after processing backlog
-        if len(game.frontier) == 0:
-            if len(linkedCellsLst) !=0: # if there are still linkedCells in linkedCellsLst
-                # Guess is Required so here is guess
-                print("Guess was required")
-                game.guess(linkedCellsLst)
+didSomething = 1
+while didSomething > 0:
+    didSomething = game.deterministicSolve()
+    if didSomething <= 0: # if determinisic solution can't be preformed then guess
+        if len(game.linkedCellsLst) != 0:  # if there are still linkedCells in linkedCellsLst
+            # Guess is Required so here is guess
+            print("Guess was required")
+            if game.guess():
+                didSomething +=1
+
 
 # guess was required if the loop stopped but there victory isn't displayed
 a = pyautogui.locateOnScreen("victory.png")
