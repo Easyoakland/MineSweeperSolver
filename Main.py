@@ -7,7 +7,7 @@ from copy import deepcopy
 # TODO guess occurs on empty lst (example is third failedgame state)
 # this gives an index error after guessing instead of realizing it won or lost
 
-# TODO the ERROR at new_linkedCellsLst[i] has more bombs than cells to fill will occur when it sees an unknown tile because it will still remove it from the linkedLst if it is unkown
+# TODO the ERROR at new_linkedCellsLst[i] has more bombs than cells to fill will occur when it sees an unknown tile because it will still remove it from the linkedLst if it is unknown
 # but if that tile is a bomb it will wind up removing too many and giving the error. Or if there is error in detection it will remove all cells of the linked list without removing the bombs
 
 # TODO logic
@@ -16,6 +16,21 @@ from copy import deepcopy
 # 4. Probability?
 # Either pick put a flag in a set where it is most likely there is a bomb (high prob num) or reveal a tile from a set that is most likely to be empty tile (low prob num)
 # Guess where there are more intersecting sets because that will give the most information after guessing
+
+# Each block loops through every position its parents haven't been where after one step it calls its children to do the same Once every position is permuted return to original position and tell parent to continue to parents next position.
+
+# If two linkedcells intersect and the intersection contains less bombs than the size of the intersection then one of those intersections must be free. This means. ..
+
+# For intersect numBombsInSet1NotIntersect= set1BobNum-(set2BobNum-NotIntersectNumSpacesOfSet2)
+
+'''
+-  if !deterministicSolve: guess
+- validate combination
+- while didsomething>0
+- if !(deterministicSolve&&guess): game finished
+- if guess: didsomething++
+- if deterministic solve: didsomething++
+'''
 
 # remove artificial pausing. use ctrl-alt-delete or alt-tab and ctrl-c if needed to abort program
 pyautogui.PAUSE = 0
@@ -99,15 +114,15 @@ while (len(game.frontier) != 0 or len(linkedCellsLst) != 0):
             new_linkedCellsLst = [item for item in new_linkedCellsLst if item != 0]
             # remove subset-superset overlaps
             game.removeCompleteOverlaps(new_linkedCellsLst)
-            # removes any newly created empty lists
-            new_linkedCellsLst = [item for item in new_linkedCellsLst if len(item.linkedCellsOffsets) != 0]
+            new_linkedCellsLst = [item for item in new_linkedCellsLst if item != 0] # remove what was flagged for removal now that looping isn't happening
             linkedCellsLst = new_linkedCellsLst.copy()  # replace old lst with new one
             newLength = len(linkedCellsLst)  # get new length
         # nothing left to do if frontier wasn't added to after processing backlog
         if len(game.frontier) == 0:
-            # Guess is Required so here is guess
-            print("Guess was required")
-            game.guess(linkedCellsLst)
+            if len(linkedCellsLst) !=0: # if there are still linkedCells in linkedCellsLst
+                # Guess is Required so here is guess
+                print("Guess was required")
+                game.guess(linkedCellsLst)
 
 # guess was required if the loop stopped but there victory isn't displayed
 a = pyautogui.locateOnScreen("victory.png")

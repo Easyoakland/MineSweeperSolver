@@ -1,5 +1,7 @@
 import pyautogui
 
+timeoutAttemptsNum = 10 # how many times the board will be checked to have updated before deciding it won't update
+
 # This exists so the exception can be called to break to outer loop
 # used by putting inner loop in a
 # try:
@@ -49,6 +51,7 @@ class Game:
             self._width, self._height, self._cellwidth, self._cellheight, self._origin, self._end, self._grid = temp
         self.frontier = []  # initialize frontier que
         self.cellTypeIms = []  # initialize list to be filled with images of each cell type
+        self.linkedCellsLst = [] # initialize list to be filled with unprocessed linkedCells
 
     def determineLayout(self):
         # First makes sure there was a recognized cell, then
@@ -105,6 +108,7 @@ class Game:
         for i, cellTypeIm in enumerate(self.cellTypeIms):
             if pyautogui.locate(cellTypeIm, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight), grayscale=True) != None:
                 return self.cellTypes[i]
+        print("UNIDENTIFIED CELL at cord: " + str(cord))
         return None
 
     # returns cached value for cell for faster ID time
@@ -114,6 +118,25 @@ class Game:
     # sets cached value for cell for better readability
     def setCellID(self, cord, ID):
         self.IDLst[self.convertCordToOffset(cord)] = ID
+
+    # returns true if cord is flag
+    def isFlag(self, cord):
+        if "flag.png"==self.identifyCell2(cord):
+            return True
+        return False
+
+    # returns true if cord is number
+    def isNumber(self, cord):
+        for cellType in self.cellTypes[1:8]: # check every numerical cell type
+            if cellType==self.identifyCell2(cord):
+                return True
+        return False
+
+    # returns true if the cell is already identified as something
+    def isExplored(self, cord):
+        if self.identifyCell2(cord) != "cell.png":
+            return True
+        return False
 
     # convert grid cordinate to pixel position
     def convertCordToPos(self, cord):
@@ -216,16 +239,20 @@ class Game:
     def reveal(self, cord):
         self.click(cord)
         a = "cell.png"
+        i = 0
         while a == "cell.png": # this will keep looking for a change until one occurs
+            if i >= timeoutAttemptsNum: # if it must wait this many times
+                print("Board won't update. Game Loss?")
+                exit()
             self.setBoardScreenshot()
             a = self.identifyCell2(cord)
+            i +=1
         self.updateIDLst(cord)
 
     # Flag tile at cord then update cell Id at location to flag
     def flag(self, cord):
         # don't do anything if the cell isn't flaggable
         if self.recallCellID(cord) != "cell.png":
-            # TODO REMOVE THIS
             print("tried flagging a non flaggable at:" + str(cord))
             return
         self.clickR(cord)
@@ -299,7 +326,7 @@ class Game:
         flagCnt = 0
         # for every neighbor of the given cell
         for neighbor in cell.neighbors(1, self._width, self._height):
-            # if the neighbor is uncovered
+            # if the neighbor is unexplored
             tempID = self.recallCellID(neighbor)
             if tempID == "cell.png":
                 # add the offset to the set
@@ -315,26 +342,33 @@ class Game:
 
     # takes a list of linkedCells and separates any subsets from supersets
     def removeCompleteOverlaps(self, new_linkedCellsLst):
+        didSomething = False
         for i in range(len(new_linkedCellsLst)):
+            # if set is flagged for deletion skip it
+            if new_linkedCellsLst[i] == 0:
+                continue
             # set to see if it is a subset
             set1 = new_linkedCellsLst[i].linkedCellsOffsets.copy()
             for j in range(len(new_linkedCellsLst)):
+                # if set is flagged for deletion skip it
+                if new_linkedCellsLst[j] == 0:
+                    continue
                 # set to see if it is a superset
                 set2 = new_linkedCellsLst[j].linkedCellsOffsets
                 if set1.issubset(set2) and (i != j):  # if it is an actual subset
-                    # if len(set1 & set2) == len(set2):
-                    #     # TODO REMOVE LINE ABOVE AND BELOW
-                    #     print("WARNING: set1: " + str(set1) + " and set 2: " + str(set2) + " are the same")
-                    # # TODO REMOVE NEXT LINE
-                    # print("removed subset: " + str(set1) +
-                    #       " from superset: " + str(set2))
-                    # remove items that are shared
+                    # remove items that are shared from the superset
                     set2.difference_update(set1)
-                    # # TODO REMOVE NEXT LINE
-                    # print("Results in removed subset: " +
-                    #       str(set1) + " from superset: " + str(set2))
-                    # and decrease the bomb count of the superset by the subset
-                    new_linkedCellsLst[j].bombNum = new_linkedCellsLst[j].bombNum - new_linkedCellsLst[i].bombNum
+                    didSomething = True
+                    # TODO is the next line needed?
+                    # new_linkedCellsLst[j].linkedCellsOffsets = set2
+                    if len(set2)==0: # if this generated an empty set
+                        new_linkedCellsLst[j] = 0 # flag for removal. can't remove now because object is being iterated over and that would mess up index
+                    else: # if this didn't generate an empty set
+                        # also decrease the bomb count of the superset by the subset's bombcount
+                        new_linkedCellsLst[j].bombNum = new_linkedCellsLst[j].bombNum - new_linkedCellsLst[i].bombNum
+        new_linkedCellsLst = [item for item in new_linkedCellsLst if item != 0] # remove what was flagged for removal now that looping isn't happening
+        return didSomething
+
 
     # finds probability that there is a bomb in target spot
     def probabilityOfBomb(self,linkedCells):
@@ -357,7 +391,71 @@ class Game:
         elif maxSoFar[0] > 1-minSoFar[0]: # if more certain about where a bomb is than where it isn't
             self.flag(self.convertOffsetToCord(list(linkedCellsLst[maxSoFar[1]].linkedCellsOffsets)[0])) # then flag a spot in the linkedCells with the greatest chance of bomb
 
+    def processFrontier(self):
+        while len(self.frontier) != 0:
+            currentCell = self.frontier.pop(0)  # pop off first element
+            self.linkedCells = self.generateLinkedCells(currentCell)
+            if self.linkedCells != None:  # if there was a linkedCells
+                if self.linkedCellsRule1(linkedCells): # if rule 1 was able to do something currentCell
+                    continue  # the rest of the loop is unnecessary
+                elif self.linkedCellsRule2(linkedCells): # if rule 2 was able to do something to the currentCell
+                    continue  # the rest of the loop is unnecessary
+                else: # if neither rule could do something to the currentCell then add it to a list to apply more advanced techniques to later
+                    # add it to the list of linked cells
+                    self.linkedCellsLst.append(linkedCells)
+                    continue
 
+    # uses deterministic methods to solve the game
+    def deterministicSolve(self):
+        didSomething = 0
+
+        while len(self.frontier)>0:
+            self.processFrontier()
+        while len(self.linkedCellsLst) > 0 and didSomething > 0:
+            didSomething = 0
+
+            # simplify any linkedCell that can be simplified
+            for i, linkedCells in enumerate(self.linkedCellsLst):
+                new_linkedCells = deepcopy(linkedCells) # make copy of current cell for edits later on
+
+            ##################### TODO split to function START
+                # check to see if the linked cells now contain a flag or already checked cell
+                for offset in linkedCells.linkedCellsOffsets:
+                    currentCord = game.convertOffsetToCord(offset)
+                    if self.isFlag(currentCord):  # if the linked cells now contain a flag
+                        new_linkedCells.linkedCellsOffsets.remove(
+                            offset)  # remove the flag from the linkedCells
+                        new_linkedCells.bombNum -= 1  # and decrease the amount of bombs left
+                        didSomething += 1
+                    elif self.isExplored(currentCord):  # if the linkedCells now contain an explored cell
+                        # remove that tile as it obviously can't be one of the bombs anymore
+                        new_linkedCells.linkedCellsOffsets.remove(offset)
+                        didSomething += 1
+                    # below shouldn't be true ever and detects errors
+                    if new_linkedCells.bombNum > len(new_linkedCells.linkedCellsOffsets):
+                        print(
+                            "ERROR at new_linkedCellsLst[" + str(i)+"] " + "has more bombs than cells to fill")
+            ##################### TODO split to function END
+
+            ##################### TODO split to function START
+                # Check if logical operation can be done
+                if self.linkedCellsRule1(new_linkedCells):
+                    # instance of linkedCells is solved and no longer needed
+                    new_linkedCellsLst[i] = 0 # replace with 0 so it is flagged for removal but index isn't messed up during linkedcellsLst enumeration
+                    didSomething +=1
+                elif self.linkedCellsRule2(new_linkedCells):
+                    # instance of linkedCells is solved and no longer needed
+                    new_linkedCellsLst[i] = 0 # replace with 0 so it is flagged for removal but index isn't messed up during linkedcellsLst enumeration
+                    didSomething +=1
+                else: # if no rule worked, still save any changed made to new_linkedCells
+                    new_linkedCellsLst[i] = new_linkedCells
+            # remove items flagged as 0's is safe now because i has reset so index won't be out of sync
+            new_linkedCellsLst = [item for item in new_linkedCellsLst if item != 0]
+            ##################### TODO split to function END
+
+            if self.removeCompleteOverlaps(new_linkedCellsLst):  # remove subset-superset overlaps
+                didSomething +=1
+            linkedCellsLst = new_linkedCellsLst.copy()  # replace old lst with new one
 
 # Handles an individual cell on the board
 class Cell:
