@@ -347,18 +347,18 @@ class Game:
         return linkedCells(setLoc, bombNum)
 
     # takes a list of linkedCells and separates any subsets from supersets
-    def removeCompleteOverlaps(self,new_linkedCellsLst):
+    def removeCompleteOverlaps(self, new_linkedCellsLst):
         didSomething = False
         for i in range(len(new_linkedCellsLst)):
             # if set is flagged for deletion skip it
-            if new_linkedCellsLst[i] == 0:
-                continue
+            # if new_linkedCellsLst[i] == 0:
+            #     continue
             # set to see if it is a subset
             set1 = new_linkedCellsLst[i].linkedCellsOffsets.copy()
             for j in range(len(new_linkedCellsLst)):
                 # if set is flagged for deletion skip it
-                if new_linkedCellsLst[j] == 0:
-                    continue
+                # if new_linkedCellsLst[j] == 0:
+                #     continue
                 # set to see if it is a superset
                 set2 = new_linkedCellsLst[j].linkedCellsOffsets
                 if set1.issubset(set2) and (i != j):  # if it is an actual subset
@@ -373,7 +373,8 @@ class Game:
                     new_linkedCellsLst[j].bombNum = new_linkedCellsLst[j].bombNum - \
                         new_linkedCellsLst[i].bombNum
         # remove what was flagged for removal now that looping isn't happening
-        new_linkedCellsLst = [item for item in new_linkedCellsLst if len(item.linkedCellsOffsets) != 0]
+        new_linkedCellsLst = [item for item in new_linkedCellsLst if len(
+            item.linkedCellsOffsets) != 0]
         return didSomething, new_linkedCellsLst
 
     # finds probability that there is a bomb in target spot
@@ -433,7 +434,8 @@ class Game:
             didSomething = 0
 
             # simplify any linkedCell that can be simplified
-            new_linkedCellsLst = self.linkedCellsLst.copy()  # make new list to copy results into
+            # make new list to copy results into
+            new_linkedCellsLst = self.linkedCellsLst.copy()
             for i, linkedCells in enumerate(self.linkedCellsLst):
                 # make copy of current cell for edits later on
                 new_linkedCells = deepcopy(linkedCells)
@@ -477,14 +479,46 @@ class Game:
             # TODO split to function END -----------------------------------------------------------------------------------------
 
             # remove subset-superset overlaps
-            tmp, new_linkedCellsLst = self.removeCompleteOverlaps(new_linkedCellsLst)
+            tmp, new_linkedCellsLst = self.removeCompleteOverlaps(
+                new_linkedCellsLst)
             if tmp:
                 didSomething += 1
             self.linkedCellsLst = new_linkedCellsLst.copy()  # replace old lst with new one
         return len(self.frontier) > 0
+
+    # make best guess from all possibilities
+    def probabalisticGuess(self):
+        pass
+
+    # each element in lst is the index and a set of the other sets further along that match the one of this index
+    def makeLstOfSetIntersections(lstOfSets):
+        lstOfSetIntersections = [set()
+                                 for i in range(len(lstOfSets))]  # initialize
+        for i in range(len(lstOfSets)):  # for each linkedCells
+            set1 = lstOfSets[i]  # easy alias for first linkedCell
+            lstOfSetIntersections[i].add(i)
+            for j in range(i+1, len(lstOfSets)):  # for each other linkedCells
+                set2 = lstOfSets[j]  # easy alias for second cell
+                if len(set1 & set2):  # if sets intersect
+                    lstOfSetIntersections[i].add(j)
+        return lstOfSetIntersections
+
+    # returns a list of unique sets where each set is a group of independent sets that are connected to each other through intersections with at least one member
+    # ex. if the following intersect (a,b) (b,c) and (c,d) then they give a unique set of sets of (a,b,c,d)
+    def makeSetOfSetIntersections(lstOfSets):
+        lstOfSetIntersections = makeLstOfSetIntersections(lstOfSets)
+        for i, setOfIntersectingSets in enumerate(lstOfSetIntersections):
+            for setIndex in setOfIntersectingSets:
+                if setIndex > i:
+                    lstOfSetIntersections[setIndex] = lstOfSetIntersections[setIndex].union(
+                        setOfIntersectingSets)
+                    lstOfSetIntersections[i] = 0  # mark for removal
+        lstOfSetIntersections = [
+            item for item in lstOfSetIntersections if item != 0]
+        return lstOfSetIntersections
+
+
 # Handles an individual cell on the board
-
-
 class Cell:
     def __init__(self, cord, ID):
         self.ID = ID

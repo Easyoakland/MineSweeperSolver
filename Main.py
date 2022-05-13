@@ -22,12 +22,8 @@ import cv2
 # For intersect numBombsInSet1NotIntersect= set1BobNum-(set2BobNum-NotIntersectNumSpacesOfSet2)
 
 '''
--  if !deterministicSolve: guess
 - validate combination
-- while didsomething>0
 - if !(deterministicSolve&&guess): game finished
-- if guess: didsomething++
-- if deterministic solve: didsomething++
 '''
 
 # remove artificial pausing. use ctrl-alt-delete or alt-tab and ctrl-c if needed to abort program
@@ -59,12 +55,12 @@ game.reveal((center))
 didSomething = 1
 while didSomething > 0:
     didSomething = game.deterministicSolve()
-    if didSomething <= 0: # if determinisic solution can't be preformed then guess
+    if didSomething <= 0:  # if determinisic solution can't be preformed then guess
         if len(game.linkedCellsLst) != 0:  # if there are still linkedCells in linkedCellsLst
             # Guess is Required so here is guess
             print("Guess was required")
             if game.guess():
-                didSomething +=1
+                didSomething += 1
 
 
 # guess was required if the loop stopped but there victory isn't displayed
