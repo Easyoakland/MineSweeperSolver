@@ -49,9 +49,7 @@ game.IDLst = ["cell.png" for i in range(game._width*game._height)]
 center = (int(game._width/2), int(game._height/2))
 game.reveal((center))
 
-# this loop ends if frontier is empty or if countdown is reached
-# the second element will evaluate to false if the iterator goes larger than frontier twice
-# the iterator is being used as a countdown to forcefully terminating loop
+# this loop will keep going until nothing happens when it runs
 didSomething = 1
 while didSomething > 0:
     didSomething = game.deterministicSolve()
@@ -59,7 +57,12 @@ while didSomething > 0:
         if len(game.linkedCellsLst) != 0:  # if there are still linkedCells in linkedCellsLst
             # Guess is Required so here is guess
             print("Guess was required")
+            if game.probabalisticGuess():
+                print("probabilistic guess used")
+                didSomething +=1
+                continue # don't guess again if this worked
             if game.guess():
+                print("fast guess used")
                 didSomething += 1
 
 

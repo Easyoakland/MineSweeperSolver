@@ -1,9 +1,12 @@
 import pyautogui
 from copy import deepcopy
 from time import sleep
+from itertools import combinations
+from math import factorial
 
 # how many times the board will be checked to have updated before deciding it won't update
 timeoutAttemptsNum = 10
+maxCombinations = 1000
 
 # This exists so the exception can be called to break to outer loop
 # used by putting inner loop in a
@@ -488,34 +491,99 @@ class Game:
 
     # make best guess from all possibilities
     def probabalisticGuess(self):
-        pass
+        didSomething = False
+        lstOfOffsets = [item.linkedCellsOffsets for item in self.linkedCellsLst]
+        subGroups = makeSetOfSetIntersections(lstOfOffsets) # find the subgroups of the grid of interconnected linkedCells
+        mostLikelyPositions = [] # keeps track of which cell is most likely to have a bomb
+        mostLikelyHood = -1 # keeps track of likelyhood of the mostLikely target
+        leastLikelyPositions = [] # keeps track of which cell is least likely to have a bomb
+        leastLikelyHood = 101 # keeps track of likelyhood of leastLikely target
+        for subGroup in subGroups: # for each unconnected subgroup
+            subgroupOffsets = []
+            subgroupBombNum = 0
+            for index in subGroup: # put offsets of corresponding subgroup into tempoffsets
+                for offset in self.linkedCellsLst[index].linkedCellsOffsets:
+                    subgroupOffsets.append(offset) # add to the list of offsets in the subgroup
+                subgroupBombNum += self.linkedCellsLst[index].bombNum # add to the count of how many bombs are in the subgroup
+            combinationAmount = factorial(len(subgroupOffsets))/(factorial(len(subgroupOffsets)-subgroupBombNum)*factorial(subgroupBombNum))
+            if combinationAmount > maxCombinations: # if the combination amount is bigger than what's allowed
+                return False # return that nothing was done # TODO replace this with call to fast guess targeting
+            offsetsOccurrenceOfBombs = dict([(offset,0) for offset in subgroupOffsets]) # holds how often a bomb occurs in each offset position
+            validCombinationAmount = 0
+            for combination in combinations(subgroupOffsets, subgroupBombNum):
+                try:
+                    combinationBombNum = 0 # stores how many bombs are in a linkedCellsOffset
+                    for linkedCellsIndex in subGroup:
+                        for offset in self.linkedCellsLst[linkedCellsIndex].linkedCellsOffsets: # for every offset in linkedCells
+                            if offset in combination: # if the offset is a bomb
+                                combinationBombNum+=1 # count up how many bombs are in offset
+                        if combinationBombNum != self.linkedCellsLst[linkedCellsIndex].bombNum: # if the amount of bombs isn't the right amount
+                            raise ContinueOuterLoop # go to the next combination because this one doesn't work
+                        elif combinationBombNum == self.linkedCellsLst[linkedCellsIndex].bombNum: # if the amount of bombs is correct
+                            for offset in combination: # for every offset in this valid combination
+                                offsetsOccurrenceOfBombs[offset] +=1 # increment the amount of bombs at each offset
+                except ContinueOuterLoop:
+                    pass
+                    # do "raise ContinueOuterLoop" when wanting to continue at outer loop
+                validCombinationAmount+=1
+            for offset, offsetOccurrenceOfBombs in offsetsOccurrenceOfBombs.items(): # enumerate offsets and chances of those offsets
+                chanceOfBombAtPosition = offsetOccurrenceOfBombs / validCombinationAmount # the chance a bomb is somewhere is the amount of combinations a bomb occurred in that position divided by how many valid combinations there are total
+                # TODO make likelyhood sort function instead of this duplicated code below
+                if chanceOfBombAtPosition > mostLikelyHood: # if likelyhood of bomb is higher than previously recorded
+                    mostLikelyHood = chanceOfBombAtPosition # update likelyhood
+                    mostLikelyPositions = [offset] # and update position with highest likelyhood
+                elif chanceOfBombAtPosition >= 98: # if the likelyhood is ~100 then add it anyway because 100% likely means theres a bomb for sure and it should be revealed regardless
+                    mostLikelyHood = chanceOfBombAtPosition # update likelyhood
+                    mostLikely.append(offset)
+                # same thing but for leastlikelyhood
+                if chanceOfBombAtPosition < leastLikelyHood:
+                    leastLikelyHood = chanceOfBombAtPosition
+                    leastLikelyPositions = [offset]
+                elif chanceOfBombAtPosition <= 2:
+                    leastLikelyHood = chanceOfBombAtPosition
+                    leastLikely.append(offset)
+            # TODO make code below new function
+                # if more certain about where a bomb isn't than where one is
+                elif mostLikelyHood <= 1-leastLikelyHood:
+                    # then reveal all spots in the linkedCells with lowest odds of bomb
+                    for leastlikelyPosition in mostlikelyPositions:
+                        self.reveal(self.convertOffsetToCord(leastLikelyPosition))
+                    didSomething = True
+                # if more certain about where a bomb is than where one isn't
+                if mostLikelyHood > 1-leastLikelyHood:
+                    # then flag all spots in the linkedCells with lowest odds of bomb
+                    for mostLikelyPosition in mostLikelyPositions:
+                        self.flag(self.convertOffsetToCord(mostlikelyPosition))
+                    didSomething = True
+        return didSomething
 
-    # each element in lst is the index and a set of the other sets further along that match the one of this index
-    def makeLstOfSetIntersections(lstOfSets):
-        lstOfSetIntersections = [set()
-                                 for i in range(len(lstOfSets))]  # initialize
-        for i in range(len(lstOfSets)):  # for each linkedCells
-            set1 = lstOfSets[i]  # easy alias for first linkedCell
-            lstOfSetIntersections[i].add(i)
-            for j in range(i+1, len(lstOfSets)):  # for each other linkedCells
-                set2 = lstOfSets[j]  # easy alias for second cell
-                if len(set1 & set2):  # if sets intersect
-                    lstOfSetIntersections[i].add(j)
-        return lstOfSetIntersections
 
-    # returns a list of unique sets where each set is a group of independent sets that are connected to each other through intersections with at least one member
-    # ex. if the following intersect (a,b) (b,c) and (c,d) then they give a unique set of sets of (a,b,c,d)
-    def makeSetOfSetIntersections(lstOfSets):
-        lstOfSetIntersections = makeLstOfSetIntersections(lstOfSets)
-        for i, setOfIntersectingSets in enumerate(lstOfSetIntersections):
-            for setIndex in setOfIntersectingSets:
-                if setIndex > i:
-                    lstOfSetIntersections[setIndex] = lstOfSetIntersections[setIndex].union(
-                        setOfIntersectingSets)
-                    lstOfSetIntersections[i] = 0  # mark for removal
-        lstOfSetIntersections = [
-            item for item in lstOfSetIntersections if item != 0]
-        return lstOfSetIntersections
+# each element in lst is the index and a set of the other sets further along that match the one of this index
+def makeLstOfSetIntersections(lstOfSets):
+    lstOfSetIntersections = [set()
+                                for i in range(len(lstOfSets))]  # initialize
+    for i in range(len(lstOfSets)):  # for each linkedCells
+        set1 = lstOfSets[i]  # easy alias for first linkedCell
+        lstOfSetIntersections[i].add(i)
+        for j in range(i+1, len(lstOfSets)):  # for each other linkedCells
+            set2 = lstOfSets[j]  # easy alias for second cell
+            if len(set1 & set2):  # if sets intersect
+                lstOfSetIntersections[i].add(j)
+    return lstOfSetIntersections
+
+# returns a list of unique sets where each set is a group of independent sets that are connected to each other through intersections with at least one member
+# ex. if the following intersect (a,b) (b,c) and (c,d) then they give a unique set of sets of (a,b,c,d)
+def makeSetOfSetIntersections(lstOfSets):
+    lstOfSetIntersections = makeLstOfSetIntersections(lstOfSets)
+    for i, setOfIntersectingSets in enumerate(lstOfSetIntersections):
+        for setIndex in setOfIntersectingSets:
+            if setIndex > i:
+                lstOfSetIntersections[setIndex] = lstOfSetIntersections[setIndex].union(
+                    setOfIntersectingSets)
+                lstOfSetIntersections[i] = 0  # mark for removal
+    lstOfSetIntersections = [
+        item for item in lstOfSetIntersections if item != 0]
+    return lstOfSetIntersections
 
 
 # Handles an individual cell on the board
