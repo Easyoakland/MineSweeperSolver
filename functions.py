@@ -608,19 +608,19 @@ class Game:
                 return 0
             # TODO make code below new function
             # if more certain about where a bomb isn't than where one is
-            if mostLikelyHood <= 1-leastLikelyHood:
-                # then reveal all spots in the linkedCells with lowest odds of bomb
-                for leastLikelyPosition in leastLikelyPositions:
-                    print(f"Revealing spot {self.convertOffsetToCord(leastLikelyPosition)} with odds {leastLikelyHood} of being bomb")
-                    self.reveal(self.convertOffsetToCord(leastLikelyPosition))
-                didSomething +=1
-            # if more certain about where a bomb is than where one isn't
-            elif mostLikelyHood > 1-leastLikelyHood:
-                # then flag all spots in the linkedCells with lowest odds of bomb
-                for mostLikelyPosition in mostLikelyPositions:
-                    print(f"Flagging spot {self.convertOffsetToCord(mostLikelyPosition)} with odds {mostLikelyHood} of being bomb")
-                    self.flag(self.convertOffsetToCord(mostLikelyPosition))
-                didSomething +=1
+        if mostLikelyHood <= 1-leastLikelyHood:
+            # then reveal all spots in the linkedCells with lowest odds of bomb
+            for leastLikelyPosition in leastLikelyPositions:
+                print(f"Revealing spot {self.convertOffsetToCord(leastLikelyPosition)} with odds {leastLikelyHood} of being bomb")
+                self.reveal(self.convertOffsetToCord(leastLikelyPosition))
+            didSomething +=1
+        # if more certain about where a bomb is than where one isn't
+        elif mostLikelyHood > 1-leastLikelyHood:
+            # then flag all spots in the linkedCells with lowest odds of bomb
+            for mostLikelyPosition in mostLikelyPositions:
+                print(f"Flagging spot {self.convertOffsetToCord(mostLikelyPosition)} with odds {mostLikelyHood} of being bomb")
+                self.flag(self.convertOffsetToCord(mostLikelyPosition))
+            didSomething +=1
         return didSomething
 
 
