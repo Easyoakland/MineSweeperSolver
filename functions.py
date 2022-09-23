@@ -3,6 +3,10 @@ from copy import deepcopy
 from time import sleep
 from itertools import combinations
 from math import factorial
+from mss import mss
+from PIL import Image
+from PIL import ImageChops
+import numpy as np
 
 # how many times the board will be checked to have updated before deciding it won't update
 timeoutAttemptsNum = 10
@@ -45,6 +49,14 @@ def restartable(seq):
             if restart:
                 break
         return
+
+def capture_screenshot(top,left,width,height):
+    with mss() as sct:
+        monitor = {"top": top, "left": left, "width": width, "height": height}
+        # monitor = {"top": 175, "left": 1030, "width": 479, "height": 255}
+        sct_img = sct.grab(monitor)
+    # Convert to PIL/Pillow Image
+    return Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
 
 
 # Handles info about board itself
@@ -114,9 +126,18 @@ class Game:
         pos = self.convertCordToPos(cord)
         # return the first tiletype that matches the tile at the given cordinate
         for i, cellTypeIm in enumerate(self.cellTypeIms):
-            if pyautogui.locate(cellTypeIm, self.boardIm, region=(pos[0]-self._origin[0], pos[1]-self._origin[1], self._cellwidth, self._cellheight), grayscale=True) != None:
-                return self.cellTypes[i]
+            # this works by computing the pixel by pixel difference between the image on the board and a reference image.
+            dif = ImageChops.difference(cellTypeIm, self.boardIm.crop((pos[0]-self._origin[0], pos[1]-self._origin[1], pos[0]-self._origin[0]+self._cellwidth, pos[1]-self._origin[1]+self._cellheight)))
+            # if the sum difference of every pixel is zero then they are the same image
+            if sum(sum(sum(np.asarray(dif)))) == 0:
+                temp = self.cellTypes[i]
+                return temp
         print("UNIDENTIFIED CELL at cord: " + str(cord))
+        # DEBUG lines
+        # Image.fromarray(cellTypeIm).show()
+        # self.boardIm.crop((pos[0]-self._origin[0], pos[1]-self._origin[1], pos[0]-self._origin[0]+self._cellwidth, pos[1]-self._origin[1]+self._cellheight)).show()
+        # dif.show()
+        exit() # if the program can't identify the cell then it shouldn't keep trying to play the game
         return None
 
     # returns cached value for cell for faster ID time
@@ -209,11 +230,11 @@ class Game:
 
     cellTypes = property(getcellTypes, setcellTypes)
 
-    # see if inputs can be optionally manual
     # screenshot board
     def setBoardScreenshot(self):
-        self.boardIm = pyautogui.screenshot(region=(
-            self._origin[0], self._origin[1], self._end[0]+self._cellwidth-self._origin[0], self._end[1]+self._cellheight-self._origin[1]))
+        self.boardIm = capture_screenshot(int(self._origin[1]), int(self._origin[0]), int(self._end[0]+self._cellwidth-self._origin[0]), int(self._end[1]+self._cellheight-self._origin[1]))
+        # self.boardIm2 = pyautogui.screenshot(region=(
+        #     self._origin[0], self._origin[1], self._end[0]+self._cellwidth-self._origin[0], self._end[1]+self._cellheight-self._origin[1]))
 
     # find new cell IDs algorithm by
     # if cell's ID is different from array:
@@ -228,7 +249,7 @@ class Game:
             return
         cell = Cell(cord, self.identifyCell2(cord))
         # if cell ID is different from recorded for that cell
-        if cell.ID != temp:
+        if cell.ID != temp and cell.ID != None:
             # update ID record for that cell
             self.IDLst[self.convertCordToOffset(cell.cord)] = cell.ID
             if cell.ID == "complete.png":
@@ -239,7 +260,7 @@ class Game:
             elif 0 < self.cellTypesDict[cell.ID] < 9:
                 # add cell to frontier
                 self.frontier.append(cell)
-        # if it is a complete
+        # if it is a complete or unidentified
         else:
             return
 

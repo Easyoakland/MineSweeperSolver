@@ -1,7 +1,7 @@
 import init
 from functions import *
 import pyautogui
-import cv2
+from PIL import Image
 
 # Installation requires `pip install pyautogui`, `pip install pillow`, `pip install opencv-python`
 
@@ -40,7 +40,7 @@ game.cellTypes = ["1.png", "2.png", "3.png",
 
 # save files to memory instead of repeatedly accessing them
 for possibleCell in game.cellTypes:
-    game.cellTypeIms.append(cv2.imread(possibleCell))
+    game.cellTypeIms.append(Image.open(possibleCell))
 
 game.cellTypesDict = {"1.png": 1, "2.png": 2, "3.png": 3,
                       "4.png": 4, "5.png": 5, "6.png": 6, "7.png": 7, "8.png": 8, "flag.png": 9, "cell.png": 10, "complete.png": 11}
