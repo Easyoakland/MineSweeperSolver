@@ -550,11 +550,14 @@ class Game:
                 subgroupBombNumUpperLimit = len(subgroupOffsets)
             subgroupBombNumLowerLimit = subgroupBombNumUpperLimit-(subgroup_offsets_before_overlaps_removed-len(subgroupOffsets)) # the lower limit on bombs is if every intersection had a bomb
             # check that the amount of combinations will not exceed maxCombinations
+            combination_total = 0
             for subgroupBombNum in range(subgroupBombNumUpperLimit+1)[subgroupBombNumLowerLimit:]:
                 combinationAmount = factorial(len(subgroupOffsets))/(factorial(len(subgroupOffsets)-subgroupBombNum)*factorial(subgroupBombNum))
+                combination_total += combinationAmount
                 # DEBUG statement below
                 # print(f"{subgroupOffsets} with length {len(subgroupOffsets)} pick {subgroupBombNum} is {combinationAmount} total combinations")
                 if combinationAmount > maxCombinations: # if the combination amount is bigger than what's allowed
+                    print(f"not computing {combinationAmount} total combinations. using fast guess instead")
                     return False # return that nothing was done # TODO replace this with call to fast guess targeting
             # iterate through all possible amounts of bombs in the subgroup
             # calculates odds as the amount of times a bomb appeared in a position/amount of valid arrangements
