@@ -3,6 +3,8 @@ from functions import *
 import pyautogui
 import cv2
 
+# Installation requires `pip install pyautogui`, `pip install pillow`, `pip install opencv-python`
+
 # TODO linkedlists with flags in them aren't getting updated
 
 # TODO the ERROR at new_linkedCellsLst[i] has more bombs than cells to fill will occur when it sees an unknown tile because it will still remove it from the linkedLst if it is unknown
@@ -53,17 +55,18 @@ game.reveal((center))
 didSomething = 1
 while didSomething > 0:
     didSomething = game.deterministicSolve()
-    if didSomething <= 0:  # if determinisic solution can't be preformed then guess
-        if len(game.linkedCellsLst) != 0:  # if there are still linkedCells in linkedCellsLst
-            # Guess is Required so here is guess
-            print("Guess was required")
-            if game.probabalisticGuess():
-                print("probabilistic guess used")
-                didSomething +=1
-                continue # don't guess again if this worked
-            if game.guess():
-                print("fast guess used")
-                didSomething += 1
+    # TODO next uncommented line is activated when there are still deterministic solutions
+    # if didSomething <= 0:  # if determinisic solution can't be preformed then guess
+    if len(game.linkedCellsLst) != 0:  # if there are still linkedCells in linkedCellsLst
+        # Guess is Required so here is guess
+        print("Guess was required")
+        if game.probabalisticGuess() >= 1:
+            print("probabilistic guess used")
+            didSomething +=1
+            continue # don't guess again if this worked
+        if game.guess() >= 1:
+            print("fast guess used")
+            didSomething += 1
 
 
 # guess was required if the loop stopped but there victory isn't displayed

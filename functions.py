@@ -6,7 +6,7 @@ from math import factorial
 
 # how many times the board will be checked to have updated before deciding it won't update
 timeoutAttemptsNum = 10
-maxCombinations = 10000
+maxCombinations = 100000
 
 # This exists so the exception can be called to break to outer loop
 # used by putting inner loop in a
@@ -388,7 +388,7 @@ class Game:
     # TODO make this take into account the amount of overlapped sets for breaking ties
     # TODO take into account that the lowest probability on a cell is the cell's actual probability of bomb if that cell is part of multiple linked lists
     def guess(self):
-        didSomething = False
+        didSomething = 0
         maxSoFar = [0, 0]
         minSoFar = [101, 0]
         for i, linkedCells in enumerate(self.linkedCellsLst):
@@ -403,13 +403,13 @@ class Game:
             # then reveal a spot in the linkedCells with lowest odds of bomb
             self.reveal(self.convertOffsetToCord(
                 list(self.linkedCellsLst[minSoFar[1]].linkedCellsOffsets)[0]))
-            didSomething = True
+            didSomething += 1
         # if more certain about where a bomb is than where it isn't
         elif maxSoFar[0] > 1-minSoFar[0]:
             # then flag a spot in the linkedCells with the greatest chance of bomb
             self.flag(self.convertOffsetToCord(
                 list(self.linkedCellsLst[maxSoFar[1]].linkedCellsOffsets)[0]))
-            didSomething = True
+            didSomething += 1
         return didSomething
 
     def processFrontier(self):
@@ -492,7 +492,7 @@ class Game:
     # make best guess from all possibilities
     # TODO this doesn't work because the amount of bombs in a subgroup is variable and unknown. Have to vary how many bombs are in subgroup from upper limit of bombs to lower limit and count
     def probabalisticGuess(self):
-        didSomething = False
+        didSomething = 0
         lstOfOffsets = [item.linkedCellsOffsets for item in self.linkedCellsLst]
         subGroups = makeSetOfSetIntersections(lstOfOffsets) # find the subgroups of the grid of interconnected linkedCells
         mostLikelyPositions = [] # keeps track of which cell is most likely to have a bomb
@@ -506,31 +506,41 @@ class Game:
                 for offset in self.linkedCellsLst[index].linkedCellsOffsets:
                     subgroupOffsets.append(offset) # add to the list of offsets in the subgroup
                 subgroupBombNumUpperLimit += self.linkedCellsLst[index].bombNum # add to the count of how many bombs are in the subgroup max
-            temp = len(subgroupOffsets) # save how many offsets with overlaps there are
+            subgroup_offsets_before_overlaps_removed = len(subgroupOffsets) # save how many offsets with overlaps there are
             subgroupOffsets = set(subgroupOffsets) # remove overlaps
-            # the upper limit of bombs is if there are no intersections and/or every position is filled
+            # the upper limit of bombs is if every intersection does not have a bomb
             # set upperlimit to the smallest upperlimit
             if subgroupBombNumUpperLimit <= len(subgroupOffsets):
-                subgroupBombNumUpperLimit = subgroupBombNumUpperLimit
+                # TODO remove this line # subgroupBombNumUpperLimit = subgroupBombNumUpperLimit
+                pass
             else:
                 subgroupBombNumUpperLimit = len(subgroupOffsets)
-            subgroupBombNumLowerLimit = subgroupBombNumUpperLimit-(temp-len(subgroupOffsets)) # the lower limit on bombs is if every intersection had a bomb
-            # iterate through all possible amounts of bombs in the subgroup
+            subgroupBombNumLowerLimit = subgroupBombNumUpperLimit-(subgroup_offsets_before_overlaps_removed-len(subgroupOffsets)) # the lower limit on bombs is if every intersection had a bomb
+            # check that the amount of combinations will not exceed maxCombinations
             for subgroupBombNum in range(subgroupBombNumUpperLimit+1)[subgroupBombNumLowerLimit:]:
                 combinationAmount = factorial(len(subgroupOffsets))/(factorial(len(subgroupOffsets)-subgroupBombNum)*factorial(subgroupBombNum))
                 print(f"{subgroupOffsets} with length {len(subgroupOffsets)} pick {subgroupBombNum} is {combinationAmount} total combinations")
                 if combinationAmount > maxCombinations: # if the combination amount is bigger than what's allowed
                     return False # return that nothing was done # TODO replace this with call to fast guess targeting
-                offsetsOccurrenceOfBombs = dict([(offset,0) for offset in subgroupOffsets]) # holds how often a bomb occurs in each offset position
-                validCombinationAmount = 0
+            # iterate through all possible amounts of bombs in the subgroup
+            # calculates odds as the amount of times a bomb appeared in a position/amount of valid arrangements
+            offsetsOccurrenceOfBombs = dict([(offset,0) for offset in subgroupOffsets]) # holds how often a bomb occurs in each offset position
+            validCombinationAmount = 0
+            for subgroupBombNum in range(subgroupBombNumUpperLimit+1)[max(0,subgroupBombNumLowerLimit):]:
+                # TODO remove this block of commented out code # combinationAmount = factorial(len(subgroupOffsets))/(factorial(len(subgroupOffsets)-subgroupBombNum)*factorial(subgroupBombNum))
+                # print(f"{subgroupOffsets} with length {len(subgroupOffsets)} pick {subgroupBombNum} is {combinationAmount} total combinations")
+                # if combinationAmount > maxCombinations: # if the combination amount is bigger than what's allowed
+                #     return False # return that nothing was done # TODO replace this with call to fast guess targeting
+                # counts up how many times a bomb occurs in each offset position
                 for combination in combinations(subgroupOffsets, subgroupBombNum):
                     try:
-                        combinationBombNum = 0 # stores how many bombs are in a linkedCellsOffset
+                        # verifies that the number of bombs in this combination is not invalid for each individual linkedCells
                         for linkedCellsIndex in subGroup:
+                            individual_linked_cells_bomb_num_for_specific_combination = 0 # stores how many bombs are in a linkedCells for this particular arrangement of bombs
                             for offset in self.linkedCellsLst[linkedCellsIndex].linkedCellsOffsets: # for every offset in linkedCells
                                 if offset in combination: # if the offset is a bomb
-                                    combinationBombNum+=1 # count up how many bombs are in offset
-                            if combinationBombNum != self.linkedCellsLst[linkedCellsIndex].bombNum: # if the amount of bombs isn't the right amount
+                                    individual_linked_cells_bomb_num_for_specific_combination+=1 # count up how many bombs are in offset
+                            if individual_linked_cells_bomb_num_for_specific_combination != self.linkedCellsLst[linkedCellsIndex].bombNum: # if the amount of bombs isn't the right amount
                                 raise ContinueOuterLoop # go to the next combination because this one doesn't work
                         # since the amount of bombs is correct
                         for offset in combination: # for every offset in this valid combination
@@ -539,40 +549,44 @@ class Game:
                     except ContinueOuterLoop:
                         pass
                         # do "raise ContinueOuterLoop" when wanting to continue at outer loop
-                if max(offsetsOccurrenceOfBombs.values()) > 0: # If there was a valid combination
-                    for offset, offsetOccurrenceOfBombs in offsetsOccurrenceOfBombs.items(): # enumerate offsets and chances of those offsets
-                        chanceOfBombAtPosition = offsetOccurrenceOfBombs / validCombinationAmount # the chance a bomb is somewhere is the amount of combinations a bomb occurred in that position divided by how many valid combinations there are total
-                        # TODO make likelyhood sort function instead of this duplicated code below
-                        if chanceOfBombAtPosition > mostLikelyHood: # if likelyhood of bomb is higher than previously recorded
-                            mostLikelyHood = chanceOfBombAtPosition # update likelyhood
-                            mostLikelyPositions = [offset] # and update position with highest likelyhood
-                        elif chanceOfBombAtPosition >= 0.98: # if the likelyhood is ~100 then add it anyway because 100% likely means theres a bomb for sure and it should be revealed regardless
-                            mostLikelyHood = chanceOfBombAtPosition # update likelyhood
-                            mostLikelyPositions.append(offset)
-                        # same thing but for leastlikelyhood
-                        if chanceOfBombAtPosition < leastLikelyHood:
-                            leastLikelyHood = chanceOfBombAtPosition
-                            leastLikelyPositions = [offset]
-                        elif chanceOfBombAtPosition <= 0.02:
-                            leastLikelyHood = chanceOfBombAtPosition
-                            leastLikelyPositions.append(offset)
-        if mostLikelyHood<0 or leastLikelyHood>100: # if couldn't find valid combination
-            return False
-        # TODO make code below new function
-        # if more certain about where a bomb isn't than where one is
-        if mostLikelyHood <= 1-leastLikelyHood:
-            print(f"Revealing spot with odds {leastLikelyHood} of being bomb")
-            # then reveal all spots in the linkedCells with lowest odds of bomb
-            for leastLikelyPosition in mostLikelyPositions:
-                self.reveal(self.convertOffsetToCord(leastLikelyPosition))
-            didSomething = True
-        # if more certain about where a bomb is than where one isn't
-        elif mostLikelyHood > 1-leastLikelyHood:
-            print(f"Flagging spot with odds {mostLikelyHood} of being bomb")
-            # then flag all spots in the linkedCells with lowest odds of bomb
-            for mostLikelyPosition in mostLikelyPositions:
-                self.flag(self.convertOffsetToCord(mostlikelyPosition))
-            didSomething = True
+            if max(offsetsOccurrenceOfBombs.values()) > 0 and validCombinationAmount > 0: # If there was a valid combination
+                for offset, offsetOccurrenceOfBombs in offsetsOccurrenceOfBombs.items(): # enumerate offsets and chances of those offsets
+                    chanceOfBombAtPosition = offsetOccurrenceOfBombs / validCombinationAmount # the chance a bomb is somewhere is the amount of combinations a bomb occurred in that position divided by how many valid combinations there are total
+                    # TODO make likelyhood sort function instead of this duplicated code below
+                    if chanceOfBombAtPosition > mostLikelyHood: # if likelyhood of bomb is higher than previously recorded
+                        mostLikelyHood = chanceOfBombAtPosition # update likelyhood
+                        mostLikelyPositions = [offset] # and update position with highest likelyhood
+                    elif chanceOfBombAtPosition == 1: # if the likelyhood is 100% then add it anyway because 100% likely means theres a bomb for sure and it should be flagged regardless
+                        mostLikelyHood = 1 # update likelyhood
+                        mostLikelyPositions.append(offset)
+                    # same thing but for leastlikelyhood
+                    if chanceOfBombAtPosition < leastLikelyHood:
+                        leastLikelyHood = chanceOfBombAtPosition
+                        leastLikelyPositions = [offset]
+                    elif chanceOfBombAtPosition == 0: # if the chance of a bomb is zero then it is guaranteed to not have a mine and should be revealed regardless
+                        leastLikelyHood = 0 # update likelyhood
+                        leastLikelyPositions.append(offset)
+
+            # make decisions based on likelyhoods
+            # TODO fix or remove next if statement. It currently will never run
+            if mostLikelyHood<0 or leastLikelyHood>100: # if couldn't find valid combination
+                print(f"Could not find valid combination with probabilistic guess for linkedCells with offsets and bombs{[[[self.convertOffsetToCord(offset) for offset in group.linkedCellsOffsets],group.bombNum] for group in self.linkedCellsLst]} and subgroups {subGroups}")
+                return 0
+            # TODO make code below new function
+            # if more certain about where a bomb isn't than where one is
+            if mostLikelyHood <= 1-leastLikelyHood:
+                # then reveal all spots in the linkedCells with lowest odds of bomb
+                for leastLikelyPosition in mostLikelyPositions:
+                    print(f"Revealing spot {self.convertOffsetToCord(leastLikelyPosition)} with odds {leastLikelyHood} of being bomb")
+                    self.reveal(self.convertOffsetToCord(leastLikelyPosition))
+                didSomething +=1
+            # if more certain about where a bomb is than where one isn't
+            elif mostLikelyHood > 1-leastLikelyHood:
+                # then flag all spots in the linkedCells with lowest odds of bomb
+                for mostLikelyPosition in mostLikelyPositions:
+                    print(f"Flagging spot {self.convertOffsetToCord(mostLikelyPosition)} with odds {mostLikelyHood} of being bomb")
+                    self.flag(self.convertOffsetToCord(mostLikelyPosition))
+                didSomething +=1
         return didSomething
 
 
