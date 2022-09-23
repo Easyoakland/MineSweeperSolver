@@ -53,11 +53,23 @@ def restartable(seq):
 def capture_screenshot(top,left,width,height):
     with mss() as sct:
         monitor = {"top": top, "left": left, "width": width, "height": height}
-        # monitor = {"top": 175, "left": 1030, "width": 479, "height": 255}
         sct_img = sct.grab(monitor)
     # Convert to PIL/Pillow Image
     return Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
 
+def exiting(game):
+    # clear file contents
+    with open('FinalGrid.csv', 'w') as file:
+        file.write("")
+
+    # testing updateIDLst
+    # write IDLst to file after formatting nicely
+    with open('FinalGrid.csv', 'a') as file:
+        for i, cell in enumerate(game.IDLst):
+            file.write(str(game.cellTypesDict[cell])+", ")
+            if (i+1) % (game._width) == 0:
+                file.write("\n")
+    exit()
 
 # Handles info about board itself
 class Game:
@@ -137,7 +149,7 @@ class Game:
         # Image.fromarray(cellTypeIm).show()
         # self.boardIm.crop((pos[0]-self._origin[0], pos[1]-self._origin[1], pos[0]-self._origin[0]+self._cellwidth, pos[1]-self._origin[1]+self._cellheight)).show()
         # dif.show()
-        exit() # if the program can't identify the cell then it shouldn't keep trying to play the game
+        exiting(self) # if the program can't identify the cell then it shouldn't keep trying to play the game
         return None
 
     # returns cached value for cell for faster ID time

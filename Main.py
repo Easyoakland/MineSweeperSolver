@@ -54,7 +54,8 @@ game.reveal((center))
 # this loop will keep going until nothing happens when it runs
 didSomething = 1
 while didSomething > 0:
-    didSomething = game.deterministicSolve()
+    for _ in range(20):
+        didSomething = game.deterministicSolve()
     # TODO next uncommented line is activated when there are still deterministic solutions
     # if didSomething <= 0:  # if determinisic solution can't be preformed then guess
     if len(game.linkedCellsLst) != 0:  # if there are still linkedCells in linkedCellsLst
@@ -76,14 +77,4 @@ if a == None:
 else:
     print("VICTORY!")
 
-# clear file contents
-with open('FinalGrid.csv', 'w') as file:
-    file.write("")
-
-# testing updateIDLst
-# write IDLst to file after formatting nicely
-with open('FinalGrid.csv', 'a') as file:
-    for i, cell in enumerate(game.IDLst):
-        file.write(str(game.cellTypesDict[cell])+", ")
-        if (i+1) % (game._width) == 0:
-            file.write("\n")
+exiting(game)
