@@ -3,30 +3,8 @@ from functions import *
 import pyautogui
 from PIL import Image
 
-# Installation requires `pip install pyautogui`, `pip install pillow`, `pip install opencv-python`
+# Installation requires `pip install pyautogui`, `pip install pillow`, `pip install opencv-python`, `pip install mss`
 
-# TODO linkedlists with flags in them aren't getting updated
-
-# TODO the ERROR at new_linkedCellsLst[i] has more bombs than cells to fill will occur when it sees an unknown tile because it will still remove it from the linkedLst if it is unknown
-# but if that tile is a bomb it will wind up removing too many and giving the error. Or if there is error in detection it will remove all cells of the linked list without removing the bombs
-
-# TODO logic
-# 3.5. Implement linked cells
-# partial overlap when overlap or nonoverlap > bombs in linkedCells.
-# 4. Probability?
-# Either pick put a flag in a set where it is most likely there is a bomb (high prob num) or reveal a tile from a set that is most likely to be empty tile (low prob num)
-# Guess where there are more intersecting sets because that will give the most information after guessing
-
-# Each block loops through every position its parents haven't been where after one step it calls its children to do the same Once every position is permuted return to original position and tell parent to continue to parents next position.
-
-# If two linkedcells intersect and the intersection contains less bombs than the size of the intersection then one of those intersections must be free. This means. ..
-
-# For intersect numBombsInSet1NotIntersect= set1BobNum-(set2BobNum-NotIntersectNumSpacesOfSet2)
-
-'''
-- validate combination
-- if !(deterministicSolve&&guess): game finished
-'''
 
 # remove artificial pausing. use ctrl-alt-delete or alt-tab and ctrl-c if needed to abort program
 pyautogui.PAUSE = 0
@@ -56,24 +34,24 @@ didSomething = 1
 while didSomething > 0:
     for _ in range(20):
         didSomething = game.deterministicSolve()
-    # TODO next uncommented line is activated when there are still deterministic solutions
-    # if didSomething <= 0:  # if determinisic solution can't be preformed then guess
-    if len(game.linkedCellsLst) != 0:  # if there are still linkedCells in linkedCellsLst
+
+    # if there are still linkedCells in linkedCellsLst
+    if len(game.linkedCellsLst) != 0:
         # Guess is Required so here is guess
         print("Guess was required")
         if game.probabalisticGuess() >= 1:
             print("probabilistic guess used")
-            didSomething +=1
-            continue # don't guess again if this worked
+            didSomething += 1
+            continue  # don't guess again if this worked
         if game.guess() >= 1:
             print("fast guess used")
             didSomething += 1
 
 
-# guess was required if the loop stopped but the victory isn't displayed
+# If the loop stopped either won or lost
 a = pyautogui.locateOnScreen("victory.png")
 if a == None:
-    print("Error - Can't continue")
+    print("Loss.")
 else:
     print("VICTORY!")
 

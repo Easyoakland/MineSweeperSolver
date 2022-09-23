@@ -1,6 +1,5 @@
 import pyautogui
 from copy import deepcopy
-from time import sleep
 from itertools import combinations
 from math import factorial
 from mss import mss
@@ -285,7 +284,6 @@ class Game:
             if i >= timeoutAttemptsNum:  # if it must wait this many times
                 print("Board won't update. Game Loss?")
                 exit()
-            # sleep(0.05)  # might be needed because pressed down tiles look kind of the same as unexplored cells, must wait for update and hope it did
             self.setBoardScreenshot()
             a = self.identifyCell2(cord)
             i += 1
@@ -418,8 +416,6 @@ class Game:
         return linkedCells.bombNum/len(linkedCells.linkedCellsOffsets)
 
     # Guess at best guess position
-    # TODO make this take into account the amount of overlapped sets for breaking ties
-    # TODO take into account that the lowest probability on a cell is the cell's actual probability of bomb if that cell is part of multiple linked lists
     def guess(self):
         didSomething = 0
         maxSoFar = [0, 0]
@@ -523,7 +519,6 @@ class Game:
         return len(self.frontier) > 0
 
     # make best guess from all possibilities
-    # TODO this doesn't work because the amount of bombs in a subgroup is variable and unknown. Have to vary how many bombs are in subgroup from upper limit of bombs to lower limit and count
     def probabalisticGuess(self):
         didSomething = 0
         lstOfOffsets = [item.linkedCellsOffsets for item in self.linkedCellsLst]
@@ -544,7 +539,6 @@ class Game:
             # the upper limit of bombs is if every intersection does not have a bomb
             # set upperlimit to the smallest upperlimit
             if subgroupBombNumUpperLimit <= len(subgroupOffsets):
-                # TODO remove this line # subgroupBombNumUpperLimit = subgroupBombNumUpperLimit
                 pass
             else:
                 subgroupBombNumUpperLimit = len(subgroupOffsets)
@@ -558,16 +552,12 @@ class Game:
                 # print(f"{subgroupOffsets} with length {len(subgroupOffsets)} pick {subgroupBombNum} is {combinationAmount} total combinations")
                 if combinationAmount > maxCombinations: # if the combination amount is bigger than what's allowed
                     print(f"not computing {combinationAmount} total combinations. using fast guess instead")
-                    return False # return that nothing was done # TODO replace this with call to fast guess targeting
+                    return False # return that nothing was done
             # iterate through all possible amounts of bombs in the subgroup
             # calculates odds as the amount of times a bomb appeared in a position/amount of valid arrangements
             offsetsOccurrenceOfBombs = dict([(offset,0) for offset in subgroupOffsets]) # holds how often a bomb occurs in each offset position
             validCombinationAmount = 0
             for subgroupBombNum in range(subgroupBombNumUpperLimit+1)[max(0,subgroupBombNumLowerLimit):]:
-                # TODO remove this block of commented out code # combinationAmount = factorial(len(subgroupOffsets))/(factorial(len(subgroupOffsets)-subgroupBombNum)*factorial(subgroupBombNum))
-                # print(f"{subgroupOffsets} with length {len(subgroupOffsets)} pick {subgroupBombNum} is {combinationAmount} total combinations")
-                # if combinationAmount > maxCombinations: # if the combination amount is bigger than what's allowed
-                #     return False # return that nothing was done # TODO replace this with call to fast guess targeting
                 # counts up how many times a bomb occurs in each offset position
                 for combination in combinations(subgroupOffsets, subgroupBombNum):
                     try:
@@ -589,7 +579,7 @@ class Game:
             if max(offsetsOccurrenceOfBombs.values()) > 0 and validCombinationAmount > 0: # If there was a valid combination
                 for offset, offsetOccurrenceOfBombs in offsetsOccurrenceOfBombs.items(): # enumerate offsets and chances of those offsets
                     chanceOfBombAtPosition = offsetOccurrenceOfBombs / validCombinationAmount # the chance a bomb is somewhere is the amount of combinations a bomb occurred in that position divided by how many valid combinations there are total
-                    # TODO make likelyhood sort function instead of this duplicated code below
+                    # TODO make function instead of this duplicated code below
                     if chanceOfBombAtPosition > mostLikelyHood: # if likelyhood of bomb is higher than previously recorded
                         mostLikelyHood = chanceOfBombAtPosition # update likelyhood
                         mostLikelyPositions = [offset] # and update position with highest likelyhood
@@ -609,8 +599,8 @@ class Game:
             if mostLikelyHood<0 or leastLikelyHood>100: # if couldn't find valid combination
                 print(f"DEBUG PRINT for linkedCells with cords and bombs{[[[self.convertOffsetToCord(offset) for offset in group.linkedCellsOffsets],group.bombNum] for group in self.linkedCellsLst]} and subgroups {subGroups} also bomb occurrence per cell for statistics is {[(self.convertOffsetToCord(item),item2) for item,item2 in list(offsetsOccurrenceOfBombs.items())]}")
                 return 0
-            # TODO make code below new function
-            # if more certain about where a bomb isn't than where one is
+        # TODO make code below new function
+        # if more certain about where a bomb isn't than where one is
         if mostLikelyHood <= 1-leastLikelyHood:
             # then reveal all spots in the linkedCells with lowest odds of bomb
             for leastLikelyPosition in leastLikelyPositions:
