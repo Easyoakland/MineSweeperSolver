@@ -519,7 +519,8 @@ class Game:
             # check that the amount of combinations will not exceed maxCombinations
             for subgroupBombNum in range(subgroupBombNumUpperLimit+1)[subgroupBombNumLowerLimit:]:
                 combinationAmount = factorial(len(subgroupOffsets))/(factorial(len(subgroupOffsets)-subgroupBombNum)*factorial(subgroupBombNum))
-                print(f"{subgroupOffsets} with length {len(subgroupOffsets)} pick {subgroupBombNum} is {combinationAmount} total combinations")
+                # DEBUG statement below
+                # print(f"{subgroupOffsets} with length {len(subgroupOffsets)} pick {subgroupBombNum} is {combinationAmount} total combinations")
                 if combinationAmount > maxCombinations: # if the combination amount is bigger than what's allowed
                     return False # return that nothing was done # TODO replace this with call to fast guess targeting
             # iterate through all possible amounts of bombs in the subgroup
@@ -568,15 +569,15 @@ class Game:
                         leastLikelyPositions.append(offset)
 
             # make decisions based on likelyhoods
-            # TODO fix or remove next if statement. It currently will never run
+            # next is a quick to run debug line to make sure things aren't super broken
             if mostLikelyHood<0 or leastLikelyHood>100: # if couldn't find valid combination
-                print(f"Could not find valid combination with probabilistic guess for linkedCells with offsets and bombs{[[[self.convertOffsetToCord(offset) for offset in group.linkedCellsOffsets],group.bombNum] for group in self.linkedCellsLst]} and subgroups {subGroups}")
+                print(f"DEBUG PRINT for linkedCells with cords and bombs{[[[self.convertOffsetToCord(offset) for offset in group.linkedCellsOffsets],group.bombNum] for group in self.linkedCellsLst]} and subgroups {subGroups} also bomb occurrence per cell for statistics is {[(self.convertOffsetToCord(item),item2) for item,item2 in list(offsetsOccurrenceOfBombs.items())]}")
                 return 0
             # TODO make code below new function
             # if more certain about where a bomb isn't than where one is
             if mostLikelyHood <= 1-leastLikelyHood:
                 # then reveal all spots in the linkedCells with lowest odds of bomb
-                for leastLikelyPosition in mostLikelyPositions:
+                for leastLikelyPosition in leastLikelyPositions:
                     print(f"Revealing spot {self.convertOffsetToCord(leastLikelyPosition)} with odds {leastLikelyHood} of being bomb")
                     self.reveal(self.convertOffsetToCord(leastLikelyPosition))
                 didSomething +=1

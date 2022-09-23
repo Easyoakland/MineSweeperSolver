@@ -69,7 +69,7 @@ while didSomething > 0:
             didSomething += 1
 
 
-# guess was required if the loop stopped but there victory isn't displayed
+# guess was required if the loop stopped but the victory isn't displayed
 a = pyautogui.locateOnScreen("victory.png")
 if a == None:
     print("Error - Can't continue")
