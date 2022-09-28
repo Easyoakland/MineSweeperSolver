@@ -4,4 +4,4 @@
     - `maxCombinations` controls how many combinations/permutations the probabilistic guess method is willing to go through before giving up and using a less accurate but quicker guess method instead.
 - The `FailedGameStates.txt` file keeps track of good reference board states for testing and improving the program.
 
-[Demo gif](./demo.gif)
+![Demo gif](./demo.gif)
