@@ -24,7 +24,7 @@ game.cellTypesDict = {"1.png": 1, "2.png": 2, "3.png": 3,
                       "4.png": 4, "5.png": 5, "6.png": 6, "7.png": 7, "8.png": 8, "flag.png": 9, "cell.png": 10, "complete.png": 11}
 
 # pre-fill IDLst
-game.IDLst = ["cell.png" for i in range(game._width*game._height)]
+game.IDLst = ["cell.png" for _ in range(game._width*game._height)]
 
 center = (int(game._width/2), int(game._height/2))
 game.reveal((center))
@@ -32,8 +32,10 @@ game.reveal((center))
 # this loop will keep going until nothing happens when it runs
 didSomething = 1
 while didSomething > 0:
-    for _ in range(20):
-        didSomething = game.deterministicSolve()
+    # deterministic solve loops until there is no deterministic solve to do
+    game.deterministicSolve()
+    # Set didSomething to 0 because if there is no guess made then the program is finished
+    didSomething = 0
 
     # if there are still linkedCells in linkedCellsLst
     if len(game.linkedCellsLst) != 0:

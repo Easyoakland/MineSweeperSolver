@@ -27,7 +27,7 @@ class ContinueOuterLoop(Exception):
 # to understand generators: https://www.youtube.com/watch?v=u3T7hmLthUU
 def enumerateVariableIndex(toIterate, start=0, step=1):
     for item in toIterate:
-        yield(start, item)
+        yield (start, item)
         start += step
 
 
@@ -36,25 +36,27 @@ def enumerateVariableSpeed(toIterate, start=0, step=1):
     for i in range(len(toIterate)):
         if start >= len(toIterate):
             return
-        yield(i, toIterate[start])
+        yield (i, toIterate[start])
         start += step
 
 
 # generator that turns a given sequence into one where using the INSTANCE_NAME.send(True) function on the generator restarts to the beginning of the sequence
 def restartable(seq):
-    while(True):
+    while (True):
         for item in seq:
             restart = yield item
             if restart:
                 break
         return
 
-def capture_screenshot(top,left,width,height):
+
+def capture_screenshot(top, left, width, height):
     with mss() as sct:
         monitor = {"top": top, "left": left, "width": width, "height": height}
         sct_img = sct.grab(monitor)
     # Convert to PIL/Pillow Image
     return Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
+
 
 def exiting(game):
     # clear file contents
@@ -70,9 +72,12 @@ def exiting(game):
                 file.write("\n")
     exit()
 
+
 # Handles info about board itself
 class Game:
     def __init__(self):
+        # DEBUG frame by frame remove next line
+        # self.picNum = 0
         # find properties of board after making sure board was found
         temp = self.determineLayout()
         if temp == None:  # if board wasn't found temp will have been set to None
@@ -138,7 +143,8 @@ class Game:
         # return the first tiletype that matches the tile at the given cordinate
         for i, cellTypeIm in enumerate(self.cellTypeIms):
             # this works by computing the pixel by pixel difference between the image on the board and a reference image.
-            dif = ImageChops.difference(cellTypeIm, self.boardIm.crop((pos[0]-self._origin[0], pos[1]-self._origin[1], pos[0]-self._origin[0]+self._cellwidth, pos[1]-self._origin[1]+self._cellheight)))
+            dif = ImageChops.difference(cellTypeIm, self.boardIm.crop(
+                (pos[0]-self._origin[0], pos[1]-self._origin[1], pos[0]-self._origin[0]+self._cellwidth, pos[1]-self._origin[1]+self._cellheight)))
             # if the sum difference of every pixel is zero then they are the same image
             if sum(sum(sum(np.asarray(dif)))) == 0:
                 temp = self.cellTypes[i]
@@ -148,8 +154,9 @@ class Game:
         # Image.fromarray(cellTypeIm).show()
         # self.boardIm.crop((pos[0]-self._origin[0], pos[1]-self._origin[1], pos[0]-self._origin[0]+self._cellwidth, pos[1]-self._origin[1]+self._cellheight)).show()
         # dif.show()
-        exiting(self) # if the program can't identify the cell then it shouldn't keep trying to play the game
-        return None
+
+        # if the program can't identify the cell then it shouldn't keep trying to play the game
+        exiting(self)
 
     # returns cached value for cell for faster ID time
     def recallCellID(self, cord):
@@ -243,9 +250,12 @@ class Game:
 
     # screenshot board
     def setBoardScreenshot(self):
-        self.boardIm = capture_screenshot(int(self._origin[1]), int(self._origin[0]), int(self._end[0]+self._cellwidth-self._origin[0]), int(self._end[1]+self._cellheight-self._origin[1]))
-        # self.boardIm2 = pyautogui.screenshot(region=(
-        #     self._origin[0], self._origin[1], self._end[0]+self._cellwidth-self._origin[0], self._end[1]+self._cellheight-self._origin[1]))
+        self.boardIm = capture_screenshot(int(self._origin[1]), int(self._origin[0]), int(
+            self._end[0]+self._cellwidth-self._origin[0]), int(self._end[1]+self._cellheight-self._origin[1]))
+        # DEBUG frame by frame remove next 3 lines
+        # self.boardIm.save(f"picFolder/{self.picNum}.png")
+        # self.picNum+=1
+        # self.showGameSavedState()
 
     # find new cell IDs algorithm by
     # if cell's ID is different from array:
@@ -281,11 +291,25 @@ class Game:
         a = "cell.png"
         i = 0
         while a == "cell.png":  # this will keep looking for a change until one occurs
-            if i >= timeoutAttemptsNum:  # if it must wait this many times
+            if i >= timeoutAttemptsNum:  # if it must wait this many times give up because something is wrong
                 print("Board won't update. Game Loss?")
                 exit()
             self.setBoardScreenshot()
             a = self.identifyCell2(cord)
+            # If the clicked cell looks like it is an unnumbered and uncovered cell then check that it's neighbors aren't uncovered.
+            # If they are all uncovered then the clicked cell is not finished loading and it only looks this way because that's how the program is displaying it temporarily while it loads.
+            if a == "complete.png":
+                # make a Cell Object for the clicked cell
+                clicked_cell = Cell(cord, "complete.png")
+                # iterate through the neighbors of the clicked_cell
+                try:
+                    for neighbor in clicked_cell.neighbors(1, self._width, self._height):
+                        if self.identifyCell2(neighbor) == "cell.png":
+                            # If any neighbors are covered then this cell can't be a blank uncovered
+                            a = "cell.png"  # set a so while loop will take a new screenshot
+                            raise ContinueOuterLoop
+                except ContinueOuterLoop:
+                    pass
             i += 1
         self.updateIDLst(cord)
 
@@ -458,145 +482,169 @@ class Game:
                     continue
 
     # uses deterministic methods to solve the game
+    # TODO make processing frontier and linkedCells two separate functions
     def deterministicSolve(self):
-        while len(self.frontier) > 0:
-            self.processFrontier()
-        didSomething = 1
-        while len(self.linkedCellsLst) > 0 and didSomething > 0:
-            didSomething = 0
+        do_while_flag = True  # makes outermost loop always execute at least once
+        # loops through frontier and linkedCells Lst. Continues looping until inner loop indicates linkedCellsLst can't be processed anymore and outer loop indicates the frontier is empty
+        while do_while_flag or len(self.frontier) > 0:
+            do_while_flag = False
+            didSomething = 1  # set didSometing to 1 so linkedCellsLst is processed at least once
+            while len(self.frontier) > 0:
+                self.processFrontier()
+            while len(self.linkedCellsLst) > 0 and didSomething > 0:
+                didSomething = 0
 
-            # simplify any linkedCell that can be simplified
-            # make new list to copy results into
-            new_linkedCellsLst = self.linkedCellsLst.copy()
-            for i, linkedCells in enumerate(self.linkedCellsLst):
-                # make copy of current cell for edits later on
-                new_linkedCells = deepcopy(linkedCells)
+                # simplify any linkedCell that can be simplified
+                # make new list to copy results into
+                new_linkedCellsLst = self.linkedCellsLst.copy()
+                for i, linkedCells in enumerate(self.linkedCellsLst):
+                    # make copy of current cell for edits later on
+                    new_linkedCells = deepcopy(linkedCells)
 
-            # TODO split to function START -----------------------------------------------------------------------------------------
-                # check to see if the linked cells now contain a flag or already checked cell
-                for offset in linkedCells.linkedCellsOffsets:
-                    if self.isFlag(offset):  # if the linked cells now contain a flag
-                        new_linkedCells.linkedCellsOffsets.remove(
-                            offset)  # remove the flag from the linkedCells
-                        new_linkedCells.bombNum -= 1  # and decrease the amount of bombs left
+                # TODO split to function START -----------------------------------------------------------------------------------------
+                    # check to see if the linked cells now contain a flag or already checked cell
+                    for offset in linkedCells.linkedCellsOffsets:
+                        if self.isFlag(offset):  # if the linked cells now contain a flag
+                            new_linkedCells.linkedCellsOffsets.remove(
+                                offset)  # remove the flag from the linkedCells
+                            new_linkedCells.bombNum -= 1  # and decrease the amount of bombs left
+                            didSomething += 1
+                        # if the linkedCells now contain an explored cell
+                        elif self.isExplored(offset):
+                            # remove that tile as it obviously can't be one of the bombs anymore
+                            new_linkedCells.linkedCellsOffsets.remove(offset)
+                            didSomething += 1
+                        # below shouldn't be true ever and detects errors
+                        if new_linkedCells.bombNum > len(new_linkedCells.linkedCellsOffsets):
+                            print(
+                                "ERROR at new_linkedCellsLst[" + str(i)+"] " + "has more bombs than cells to fill")
+                # TODO split to function END -----------------------------------------------------------------------------------------
+
+                # TODO split to function START -----------------------------------------------------------------------------------------
+                    # Check if logical operation can be done
+                    if self.linkedCellsRule1(new_linkedCells):
+                        # instance of linkedCells is solved and no longer needed
+                        # replace with 0 so it is flagged for removal but index isn't messed up during self.linkedcellsLst enumeration
+                        new_linkedCellsLst[i] = 0
                         didSomething += 1
-                    # if the linkedCells now contain an explored cell
-                    elif self.isExplored(offset):
-                        # remove that tile as it obviously can't be one of the bombs anymore
-                        new_linkedCells.linkedCellsOffsets.remove(offset)
+                    elif self.linkedCellsRule2(new_linkedCells):
+                        # instance of linkedCells is solved and no longer needed
+                        # replace with 0 so it is flagged for removal but index isn't messed up during self.linkedcellsLst enumeration
+                        new_linkedCellsLst[i] = 0
                         didSomething += 1
-                    # below shouldn't be true ever and detects errors
-                    if new_linkedCells.bombNum > len(new_linkedCells.linkedCellsOffsets):
-                        print(
-                            "ERROR at new_linkedCellsLst[" + str(i)+"] " + "has more bombs than cells to fill")
-            # TODO split to function END -----------------------------------------------------------------------------------------
+                    else:  # if no rule worked, still save any changed made to new_linkedCells
+                        new_linkedCellsLst[i] = new_linkedCells
+                # remove items flagged as 0's is safe now because i has reset so index won't be out of sync
+                new_linkedCellsLst = [
+                    item for item in new_linkedCellsLst if item != 0]
+                # TODO split to function END -----------------------------------------------------------------------------------------
 
-            # TODO split to function START -----------------------------------------------------------------------------------------
-                # Check if logical operation can be done
-                if self.linkedCellsRule1(new_linkedCells):
-                    # instance of linkedCells is solved and no longer needed
-                    # replace with 0 so it is flagged for removal but index isn't messed up during self.linkedcellsLst enumeration
-                    new_linkedCellsLst[i] = 0
+                # remove subset-superset overlaps
+                tmp, new_linkedCellsLst = self.removeCompleteOverlaps(
+                    new_linkedCellsLst)
+                if tmp:
                     didSomething += 1
-                elif self.linkedCellsRule2(new_linkedCells):
-                    # instance of linkedCells is solved and no longer needed
-                    # replace with 0 so it is flagged for removal but index isn't messed up during self.linkedcellsLst enumeration
-                    new_linkedCellsLst[i] = 0
-                    didSomething += 1
-                else:  # if no rule worked, still save any changed made to new_linkedCells
-                    new_linkedCellsLst[i] = new_linkedCells
-            # remove items flagged as 0's is safe now because i has reset so index won't be out of sync
-            new_linkedCellsLst = [
-                item for item in new_linkedCellsLst if item != 0]
-            # TODO split to function END -----------------------------------------------------------------------------------------
-
-            # remove subset-superset overlaps
-            tmp, new_linkedCellsLst = self.removeCompleteOverlaps(
-                new_linkedCellsLst)
-            if tmp:
-                didSomething += 1
-            self.linkedCellsLst = new_linkedCellsLst.copy()  # replace old lst with new one
-        return len(self.frontier) > 0
+                self.linkedCellsLst = new_linkedCellsLst.copy()  # replace old lst with new one
 
     # make best guess from all possibilities
     def probabalisticGuess(self):
         didSomething = 0
-        lstOfOffsets = [item.linkedCellsOffsets for item in self.linkedCellsLst]
-        subGroups = makeSetOfSetIntersections(lstOfOffsets) # find the subgroups of the grid of interconnected linkedCells
-        mostLikelyPositions = [] # keeps track of which cell is most likely to have a bomb
-        mostLikelyHood = -1 # keeps track of likelyhood of the mostLikely target
-        leastLikelyPositions = [] # keeps track of which cell is least likely to have a bomb
-        leastLikelyHood = 101 # keeps track of likelyhood of leastLikely target
-        for subGroup in subGroups: # for each unconnected subgroup
+        lstOfOffsets = [
+            item.linkedCellsOffsets for item in self.linkedCellsLst]
+        # find the subgroups of the grid of interconnected linkedCells
+        subGroups = makeSetOfSetIntersections(lstOfOffsets)
+        mostLikelyPositions = []  # keeps track of which cell is most likely to have a bomb
+        mostLikelyHood = -1  # keeps track of likelyhood of the mostLikely target
+        leastLikelyPositions = []  # keeps track of which cell is least likely to have a bomb
+        leastLikelyHood = 101  # keeps track of likelyhood of leastLikely target
+        for subGroup in subGroups:  # for each unconnected subgroup
             subgroupOffsets = []
             subgroupBombNumUpperLimit = 0
-            for index in subGroup: # put offsets of corresponding subgroup into tempoffsets
+            for index in subGroup:  # put offsets of corresponding subgroup into tempoffsets
                 for offset in self.linkedCellsLst[index].linkedCellsOffsets:
-                    subgroupOffsets.append(offset) # add to the list of offsets in the subgroup
-                subgroupBombNumUpperLimit += self.linkedCellsLst[index].bombNum # add to the count of how many bombs are in the subgroup max
-            subgroup_offsets_before_overlaps_removed = len(subgroupOffsets) # save how many offsets with overlaps there are
-            subgroupOffsets = set(subgroupOffsets) # remove overlaps
+                    # add to the list of offsets in the subgroup
+                    subgroupOffsets.append(offset)
+                # add to the count of how many bombs are in the subgroup max
+                subgroupBombNumUpperLimit += self.linkedCellsLst[index].bombNum
+            # save how many offsets with overlaps there are
+            subgroup_offsets_before_overlaps_removed = len(subgroupOffsets)
+            subgroupOffsets = set(subgroupOffsets)  # remove overlaps
             # the upper limit of bombs is if every intersection does not have a bomb
             # set upperlimit to the smallest upperlimit
             if subgroupBombNumUpperLimit <= len(subgroupOffsets):
                 pass
             else:
                 subgroupBombNumUpperLimit = len(subgroupOffsets)
-            subgroupBombNumLowerLimit = subgroupBombNumUpperLimit-(subgroup_offsets_before_overlaps_removed-len(subgroupOffsets)) # the lower limit on bombs is if every intersection had a bomb
+            # the lower limit on bombs is if every intersection had a bomb
+            subgroupBombNumLowerLimit = subgroupBombNumUpperLimit - \
+                (subgroup_offsets_before_overlaps_removed-len(subgroupOffsets))
             # check that the amount of combinations will not exceed maxCombinations
             combination_total = 0
-            for subgroupBombNum in range(subgroupBombNumUpperLimit+1)[subgroupBombNumLowerLimit:]:
-                combinationAmount = factorial(len(subgroupOffsets))/(factorial(len(subgroupOffsets)-subgroupBombNum)*factorial(subgroupBombNum))
+            for subgroupBombNum in range(subgroupBombNumUpperLimit+1)[max(0, subgroupBombNumLowerLimit):]:
+                combinationAmount = factorial(len(subgroupOffsets))/(
+                    factorial(len(subgroupOffsets)-subgroupBombNum)*factorial(subgroupBombNum))
                 combination_total += combinationAmount
                 # DEBUG statement below
                 # print(f"{subgroupOffsets} with length {len(subgroupOffsets)} pick {subgroupBombNum} is {combinationAmount} total combinations")
-                if combinationAmount > maxCombinations: # if the combination amount is bigger than what's allowed
-                    print(f"not computing {combinationAmount} total combinations. using fast guess instead")
-                    return False # return that nothing was done
+                if combination_total > maxCombinations:  # if the combination amount is bigger than what's allowed
+                    print(
+                        f"not computing {combination_total} total combinations. using fast guess instead")
+                    return False  # return that nothing was done
             # iterate through all possible amounts of bombs in the subgroup
             # calculates odds as the amount of times a bomb appeared in a position/amount of valid arrangements
-            offsetsOccurrenceOfBombs = dict([(offset,0) for offset in subgroupOffsets]) # holds how often a bomb occurs in each offset position
+            # holds how often a bomb occurs in each offset position
+            offsetsOccurrenceOfBombs = dict(
+                [(offset, 0) for offset in subgroupOffsets])
             validCombinationAmount = 0
-            for subgroupBombNum in range(subgroupBombNumUpperLimit+1)[max(0,subgroupBombNumLowerLimit):]:
+            for subgroupBombNum in range(subgroupBombNumUpperLimit+1)[max(0, subgroupBombNumLowerLimit):]:
                 # counts up how many times a bomb occurs in each offset position
                 for combination in combinations(subgroupOffsets, subgroupBombNum):
                     try:
                         # verifies that the number of bombs in this combination is not invalid for each individual linkedCells
                         for linkedCellsIndex in subGroup:
-                            individual_linked_cells_bomb_num_for_specific_combination = 0 # stores how many bombs are in a linkedCells for this particular arrangement of bombs
-                            for offset in self.linkedCellsLst[linkedCellsIndex].linkedCellsOffsets: # for every offset in linkedCells
-                                if offset in combination: # if the offset is a bomb
-                                    individual_linked_cells_bomb_num_for_specific_combination+=1 # count up how many bombs are in offset
-                            if individual_linked_cells_bomb_num_for_specific_combination != self.linkedCellsLst[linkedCellsIndex].bombNum: # if the amount of bombs isn't the right amount
-                                raise ContinueOuterLoop # go to the next combination because this one doesn't work
+                            # stores how many bombs are in a linkedCells for this particular arrangement of bombs
+                            individual_linked_cells_bomb_num_for_specific_combination = 0
+                            # for every offset in linkedCells
+                            for offset in self.linkedCellsLst[linkedCellsIndex].linkedCellsOffsets:
+                                if offset in combination:  # if the offset is a bomb
+                                    # count up how many bombs are in offset
+                                    individual_linked_cells_bomb_num_for_specific_combination += 1
+                            # if the amount of bombs isn't the right amount
+                            if individual_linked_cells_bomb_num_for_specific_combination != self.linkedCellsLst[linkedCellsIndex].bombNum:
+                                raise ContinueOuterLoop  # go to the next combination because this one doesn't work
                         # since the amount of bombs is correct
-                        for offset in combination: # for every offset in this valid combination
-                            offsetsOccurrenceOfBombs[offset] +=1 # increment the amount of bombs at each offset
-                        validCombinationAmount+=1
+                        for offset in combination:  # for every offset in this valid combination
+                            # increment the amount of bombs at each offset
+                            offsetsOccurrenceOfBombs[offset] += 1
+                        validCombinationAmount += 1
                     except ContinueOuterLoop:
                         pass
                         # do "raise ContinueOuterLoop" when wanting to continue at outer loop
-            if max(offsetsOccurrenceOfBombs.values()) > 0 and validCombinationAmount > 0: # If there was a valid combination
-                for offset, offsetOccurrenceOfBombs in offsetsOccurrenceOfBombs.items(): # enumerate offsets and chances of those offsets
-                    chanceOfBombAtPosition = offsetOccurrenceOfBombs / validCombinationAmount # the chance a bomb is somewhere is the amount of combinations a bomb occurred in that position divided by how many valid combinations there are total
+            # If there was a valid combination
+            if max(offsetsOccurrenceOfBombs.values()) > 0 and validCombinationAmount > 0:
+                # enumerate offsets and chances of those offsets
+                for offset, offsetOccurrenceOfBombs in offsetsOccurrenceOfBombs.items():
+                    # the chance a bomb is somewhere is the amount of combinations a bomb occurred in that position divided by how many valid combinations there are total
+                    chanceOfBombAtPosition = offsetOccurrenceOfBombs / validCombinationAmount
                     # TODO make function instead of this duplicated code below
-                    if chanceOfBombAtPosition > mostLikelyHood: # if likelyhood of bomb is higher than previously recorded
-                        mostLikelyHood = chanceOfBombAtPosition # update likelyhood
-                        mostLikelyPositions = [offset] # and update position with highest likelyhood
-                    elif chanceOfBombAtPosition == 1: # if the likelyhood is 100% then add it anyway because 100% likely means theres a bomb for sure and it should be flagged regardless
-                        mostLikelyHood = 1 # update likelyhood
+                    if chanceOfBombAtPosition > mostLikelyHood:  # if likelyhood of bomb is higher than previously recorded
+                        mostLikelyHood = chanceOfBombAtPosition  # update likelyhood
+                        # and update position with highest likelyhood
+                        mostLikelyPositions = [offset]
+                    elif chanceOfBombAtPosition == 1:  # if the likelyhood is 100% then add it anyway because 100% likely means theres a bomb for sure and it should be flagged regardless
+                        mostLikelyHood = 1  # update likelyhood
                         mostLikelyPositions.append(offset)
                     # same thing but for leastlikelyhood
                     if chanceOfBombAtPosition < leastLikelyHood:
                         leastLikelyHood = chanceOfBombAtPosition
                         leastLikelyPositions = [offset]
-                    elif chanceOfBombAtPosition == 0: # if the chance of a bomb is zero then it is guaranteed to not have a mine and should be revealed regardless
-                        leastLikelyHood = 0 # update likelyhood
+                    elif chanceOfBombAtPosition == 0:  # if the chance of a bomb is zero then it is guaranteed to not have a mine and should be revealed regardless
+                        leastLikelyHood = 0  # update likelyhood
                         leastLikelyPositions.append(offset)
 
             # make decisions based on likelyhoods
             # next is a quick to run debug line to make sure things aren't super broken
-            if mostLikelyHood<0 or leastLikelyHood>100: # if couldn't find valid combination
+            if mostLikelyHood < 0 or leastLikelyHood > 100:  # if couldn't find valid combination
                 print(f"DEBUG PRINT for linkedCells with cords and bombs{[[[self.convertOffsetToCord(offset) for offset in group.linkedCellsOffsets],group.bombNum] for group in self.linkedCellsLst]} and subgroups {subGroups} also bomb occurrence per cell for statistics is {[(self.convertOffsetToCord(item),item2) for item,item2 in list(offsetsOccurrenceOfBombs.items())]}")
                 return 0
         # TODO make code below new function
@@ -604,23 +652,37 @@ class Game:
         if mostLikelyHood <= 1-leastLikelyHood:
             # then reveal all spots in the linkedCells with lowest odds of bomb
             for leastLikelyPosition in leastLikelyPositions:
-                print(f"Revealing spot {self.convertOffsetToCord(leastLikelyPosition)} with odds {leastLikelyHood} of being bomb")
+                print(
+                    f"Revealing spot {self.convertOffsetToCord(leastLikelyPosition)} with odds {leastLikelyHood} of being bomb")
                 self.reveal(self.convertOffsetToCord(leastLikelyPosition))
-            didSomething +=1
+            didSomething += 1
         # if more certain about where a bomb is than where one isn't
         elif mostLikelyHood > 1-leastLikelyHood:
             # then flag all spots in the linkedCells with lowest odds of bomb
             for mostLikelyPosition in mostLikelyPositions:
-                print(f"Flagging spot {self.convertOffsetToCord(mostLikelyPosition)} with odds {mostLikelyHood} of being bomb")
+                print(
+                    f"Flagging spot {self.convertOffsetToCord(mostLikelyPosition)} with odds {mostLikelyHood} of being bomb")
                 self.flag(self.convertOffsetToCord(mostLikelyPosition))
-            didSomething +=1
+            didSomething += 1
         return didSomething
+
+    # Generates an image representing what the program thinks the board looks like.
+    # A neat/nifty way to use it is to run `ImageChops.difference(self.showGameSavedState(),self.boardIm).show()` somewhere to see how it is different from the actual state of the board
+    def showGameSavedState(self):
+        newImage = Image.new("RGB", (self._end[0]-self._origin[0]+self._cellwidth,
+                             self._end[1]-self._origin[1]+self._cellheight), "white")
+        # for ID in Game.IDLst:
+        for j in range(self.getHeight()):
+            for i in range(self.getWidth()):
+                newImage.paste(self.cellTypeIms[self.cellTypesDict[self.recallCellID(
+                    (i, j))]-1], (self._cellwidth*i, self._cellheight*j))
+        return newImage
 
 
 # each element in lst is the index and a set of the other sets further along that match the one of this index
 def makeLstOfSetIntersections(lstOfSets):
     lstOfSetIntersections = [set()
-                                for i in range(len(lstOfSets))]  # initialize
+                             for _ in range(len(lstOfSets))]  # initialize
     for i in range(len(lstOfSets)):  # for each linkedCells
         set1 = lstOfSets[i]  # easy alias for first linkedCell
         lstOfSetIntersections[i].add(i)
@@ -629,6 +691,7 @@ def makeLstOfSetIntersections(lstOfSets):
             if len(set1 & set2):  # if sets intersect
                 lstOfSetIntersections[i].add(j)
     return lstOfSetIntersections
+
 
 # returns a list of unique sets where each set is a group of independent sets that are connected to each other through intersections with at least one member
 # ex. if the following intersect (a,b) (b,c) and (c,d) then they give a unique set of sets of (a,b,c,d)
@@ -647,12 +710,12 @@ def makeSetOfSetIntersections(lstOfSets):
 
 # Handles an individual cell on the board
 class Cell:
-    def __init__(self, cord, ID):
+    def __init__(self, cord: tuple[int, int], ID: str):
         self.ID = ID
         self.cord = cord
 
     # returns cords of all neighbors that exist
-    def neighbors(self, radius, width, height):
+    def neighbors(self, radius, width, height) -> list[tuple[int, int]]:
         neighbors = []
         # goes from left to right and from top to bottom generating neighbor cords
         # each radius increases number of cells in each dimension by 2 starting with 1 cell at radius = 0
@@ -664,7 +727,7 @@ class Cell:
         neighbors.remove(self.cord)
         # removes invalid neighbors
         i = 0
-        while(i < len(neighbors)):
+        while (i < len(neighbors)):
             cord = neighbors[i]
             # neighbor has negative cordinate
             if cord[0] < 0 or cord[1] < 0:
