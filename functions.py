@@ -58,21 +58,6 @@ def capture_screenshot(top, left, width, height):
     return Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
 
 
-def exiting(game):
-    # clear file contents
-    with open('FinalGrid.csv', 'w') as file:
-        file.write("")
-
-    # testing updateIDLst
-    # write IDLst to file after formatting nicely
-    with open('FinalGrid.csv', 'a') as file:
-        for i, cell in enumerate(game.IDLst):
-            file.write(str(game.cellTypesDict[cell])+", ")
-            if (i+1) % (game._width) == 0:
-                file.write("\n")
-    exit()
-
-
 # Handles info about board itself
 class Game:
     def __init__(self):
@@ -253,7 +238,7 @@ class Game:
         self.boardIm = capture_screenshot(int(self._origin[1]), int(self._origin[0]), int(
             self._end[0]+self._cellwidth-self._origin[0]), int(self._end[1]+self._cellheight-self._origin[1]))
         # DEBUG frame by frame remove next 3 lines
-        # self.boardIm.save(f"picFolder/{self.picNum}.png")
+        # self.boardIm.save(f"tests/picFolder/{self.picNum}.png")
         # self.picNum+=1
         # self.showGameSavedState()
 
@@ -677,6 +662,25 @@ class Game:
                 newImage.paste(self.cellTypeIms[self.cellTypesDict[self.recallCellID(
                     (i, j))]-1], (self._cellwidth*i, self._cellheight*j))
         return newImage
+
+
+def exiting(game: Game):
+    # save saved game state as picture
+    game.showGameSavedState().save("FinalGameState.png")
+
+    ## save game state as csv
+    # clear file contents
+    with open('FinalGameState.csv', 'w') as file:
+        file.write("")
+
+    # testing updateIDLst
+    # write IDLst to file after formatting nicely
+    with open('FinalGameState.csv', 'a') as file:
+        for i, cell in enumerate(game.IDLst):
+            file.write(str(game.cellTypesDict[cell])+", ")
+            if (i+1) % (game._width) == 0:
+                file.write("\n")
+    exit()
 
 
 # each element in lst is the index and a set of the other sets further along that match the one of this index
